@@ -1,0 +1,16 @@
+<?php
+
+/**
+ * @file
+ * Provides PostHog analytics integration for the Analyze module.
+ */
+
+/**
+ * Implements hook_help().
+ */
+function analyze_posthog_help($route_name, $route_match) {
+  switch ($route_name) {
+    case 'help.page.analyze_posthog':
+      return '<p>' . t('The Analyze PostHog module displays PostHog analytics data (pageviews, unique visitors, sessions, bounce rate) for entities with URL paths in the Analyze tab.') . '</p>';
+  }
+}

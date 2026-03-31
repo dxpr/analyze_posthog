@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * @file
+ * Contains install and update functions for the Analyze PostHog module.
+ */
+
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+
+/**
+ * Implements hook_install().
+ */
+function analyze_posthog_install(): void {
+  \Drupal::messenger()->addWarning(t('You need to configure PostHog API credentials to use the PostHog analyzer. %click_here to configure settings.', [
+    '%click_here' => Link::fromTextAndUrl(t('Click here'), Url::fromRoute('analyze_posthog.settings'))->toString(),
+  ]));
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function analyze_posthog_uninstall(): void {
+  \Drupal::configFactory()->getEditable('analyze_posthog.settings')->delete();
+}

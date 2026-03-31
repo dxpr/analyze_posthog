@@ -1,0 +1,13 @@
+analyze_posthog.settings:
+  title: 'PostHog Analytics'
+  description: 'Configure PostHog analytics integration and run reports.'
+  parent: ai.admin_settings
+  route_name: analyze_posthog.settings
+  weight: 6
+
+analyze_posthog.report:
+  title: 'Site Analytics'
+  description: 'View PostHog website analytics.'
+  parent: system.admin_reports
+  route_name: analyze_posthog.report
+  weight: 5

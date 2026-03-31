@@ -1,0 +1,3 @@
+access posthog analytics:
+  title: 'Access PostHog analytics'
+  description: 'View PostHog analytics data in the Analyze tab and sitewide report.'

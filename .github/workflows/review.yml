@@ -1,0 +1,27 @@
+name: Review
+
+on: [pull_request]
+
+env:
+  TARGET_DRUPAL_CORE_VERSION: 11
+
+jobs:
+  drupal-lint:
+    runs-on: ubicloud-standard-4
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Lint Drupal
+      run: |
+        docker compose --profile lint run drupal-lint
+
+  drupal-check:
+    runs-on: ubicloud-standard-4
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Check Drupal compatibility
+      run: |
+        docker compose --profile lint run drupal-check

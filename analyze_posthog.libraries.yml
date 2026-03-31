@@ -1,0 +1,4 @@
+report:
+  css:
+    component:
+      css/analyze_posthog.css: {}

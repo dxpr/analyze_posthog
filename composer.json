@@ -1,0 +1,9 @@
+{
+  "name": "drupal/analyze_posthog",
+  "type": "drupal-module",
+  "description": "Displays PostHog analytics data (pageviews, visitors, sessions) for entities with URL paths.",
+  "license": "GPL-2.0-or-later",
+  "suggest": {
+    "drush/drush": "^12 || ^13 for Drush command support"
+  }
+}

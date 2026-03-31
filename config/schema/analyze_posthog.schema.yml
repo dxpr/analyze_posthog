@@ -1,0 +1,19 @@
+analyze_posthog.settings:
+  type: config_object
+  label: 'PostHog Analytics settings'
+  mapping:
+    personal_api_key:
+      type: string
+      label: 'Personal API key'
+    host:
+      type: string
+      label: 'PostHog host URL'
+    project_id:
+      type: string
+      label: 'Project ID'
+    date_range:
+      type: integer
+      label: 'Default date range in days'
+    cache_ttl:
+      type: integer
+      label: 'Cache TTL in seconds'

@@ -1,0 +1,15 @@
+analyze_posthog.settings:
+  path: '/admin/config/analyze/posthog'
+  defaults:
+    _form: 'Drupal\analyze_posthog\Form\PostHogSettingsForm'
+    _title: 'PostHog Analytics Settings'
+  requirements:
+    _permission: 'administer analyze settings'
+
+analyze_posthog.report:
+  path: '/admin/reports/posthog'
+  defaults:
+    _controller: 'Drupal\analyze_posthog\Controller\ReportController::report'
+    _title: 'Site Analytics'
+  requirements:
+    _permission: 'access posthog analytics'

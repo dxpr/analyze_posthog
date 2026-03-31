@@ -1,0 +1,10 @@
+analyze_posthog.settings:
+  route_name: analyze_posthog.settings
+  title: 'Settings'
+  base_route: analyze_posthog.settings
+
+analyze_posthog.report_tab:
+  route_name: analyze_posthog.report
+  title: 'Report'
+  base_route: analyze_posthog.settings
+  weight: 5

@@ -1,0 +1,55 @@
+/**
+ * @file
+ * Styles for Analyze PostHog reports.
+ */
+
+/**
+ * Exposed filter form -- inline layout matching core admin/content.
+ *
+ * The views-exposed-form flex CSS comes from the Views module library,
+ * which isn't loaded on non-Views pages. We replicate it here so our
+ * filter form renders inline on both the sitewide and entity reports.
+ */
+form.views-exposed-form.analyze-posthog-report-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+form.views-exposed-form.analyze-posthog-report-filter > .form-item {
+  margin: 12px 8px 0 0;
+}
+
+form.views-exposed-form.analyze-posthog-report-filter > .form-actions {
+  margin: 12px 0 0 0;
+}
+
+/* KPI summary cards. */
+.ph-kpi-value {
+  font-size: 1.2em;
+}
+
+/* Change indicators -- green = good, red = bad. */
+.ph-change--up {
+  color: #18794e;
+}
+
+.ph-change--down {
+  color: #c2382b;
+}
+
+.ph-change--neutral {
+  color: #666;
+}
+
+/* Code block for setup instructions. */
+.ph-code-block {
+  user-select: all;
+  display: inline-block;
+  margin: 8px 0;
+  padding: 6px 12px;
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}

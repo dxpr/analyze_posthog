@@ -1,0 +1,9 @@
+name: 'Analyze PostHog'
+type: module
+description: 'Displays PostHog analytics data (pageviews, visitors, sessions) for entities with URL paths.'
+package: Analyze
+core_version_requirement: ^10.3 || ^11
+dependencies:
+  - analyze:analyze (>=1.1.0)
+  - key:key
+configure: analyze_posthog.settings
