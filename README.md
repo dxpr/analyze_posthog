@@ -79,17 +79,26 @@ Detailed breakdown with dimension tabs:
 Each view shows metrics per row with previous period comparison, sorted by
 pageviews descending.
 
-## Batch Processing
+## CLI & AI Agent Support
 
-Batch analysis is available through the centralized Analyze batch system:
+### Batch Processing
 
-- **Admin UI**: Navigate to Administration > Configuration > Content > Batch
-  Analysis (`/admin/config/content/analyze-batch`), select "PostHog Analytics"
-  and your desired content types.
-- **Drush CLI**: `drush analyze:batch --analyzers=posthog_analytics`
+Pre-fetch PostHog data via the centralized batch system:
 
-See the [Analyze module documentation](https://www.drupal.org/project/analyze)
-for full batch command options.
+- **Drush CLI**:
+  `drush analyze:batch --analyzers=posthog_analytics`
+
+### Module-Specific Commands
+
+- `drush analyze:posthog:status` -- Connection status
+- `drush analyze:posthog:query <path>` -- Query analytics
+- `drush analyze:posthog:report` -- Sitewide report
+- `drush analyze:posthog:goals` -- Conversion goals
+- `drush analyze:posthog:cache-clear` -- Clear cache
+
+### AI Agent Integration
+
+Install skill files with `drush analyze:setup-ai`.
 
 ## Development
 
