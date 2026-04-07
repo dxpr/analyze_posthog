@@ -886,6 +886,532 @@ class PostHogClient {
   }
 
   /**
+   * Get conversion data for a specific page.
+   *
+   * @param string $pathname
+   *   The page pathname.
+   * @param int $days
+   *   Number of days.
+   * @param array<int, array<string, mixed>> $goals
+   *   Conversion goals from config.
+   *
+   * @return array<string, mixed>
+   *   Array with 'goals', 'total_conversions', 'total_revenue',
+   *   'total_sessions', 'overall_rate' keys.
+   */
+  public function getPageConversions(string $pathname, int $days, array $goals): array {
+    $goalsHash = md5(serialize($goals));
+    $cacheKey = $this->getCacheKey($pathname, 'conversions', $days) . ":{$goalsHash}";
+    $cached = $this->cache->get($cacheKey);
+    if ($cached) {
+      return $cached->data;
+    }
+
+    $result = $this->fetchConversions($pathname, $days, $goals, FALSE);
+    $this->cacheSet($cacheKey, $result);
+    return $result;
+  }
+
+  /**
+   * Get conversion data with comparison to previous period.
+   *
+   * @param string $pathname
+   *   The page pathname.
+   * @param int $days
+   *   Number of days.
+   * @param array<int, array<string, mixed>> $goals
+   *   Conversion goals from config.
+   *
+   * @return array<string, mixed>|null
+   *   Array with 'current' and 'previous' keys, or NULL.
+   */
+  public function getPageConversionsWithComparison(string $pathname, int $days, array $goals): ?array {
+    $goalsHash = md5(serialize($goals));
+    $cacheKey = $this->getCacheKey($pathname, 'conv_comparison', $days) . ":{$goalsHash}";
+    $cached = $this->cache->get($cacheKey);
+    if ($cached) {
+      return $cached->data;
+    }
+
+    $current = $this->fetchConversions($pathname, $days, $goals, FALSE);
+    $previous = $this->fetchConversions($pathname, $days, $goals, TRUE);
+
+    $result = [
+      'current' => $current,
+      'previous' => $previous,
+    ];
+
+    $this->cacheSet($cacheKey, $result);
+    return $result;
+  }
+
+  /**
+   * Get sitewide conversion data (which pages drive conversions).
+   *
+   * @param int $days
+   *   Number of days.
+   * @param array<int, array<string, mixed>> $goals
+   *   Conversion goals from config.
+   * @param string $country
+   *   Optional country filter.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Array of rows with 'key' (page), 'conversions', 'revenue' keys.
+   */
+  public function getSitewideConversions(int $days, array $goals, string $country = ''): array {
+    $goalsHash = md5(serialize($goals));
+    $cacheKey = "analyze_posthog:sitewide:conversions:{$days}:{$goalsHash}:" . md5($country);
+    $cached = $this->cache->get($cacheKey);
+    if ($cached) {
+      return $cached->data;
+    }
+
+    $result = $this->fetchSitewideConversions($days, $goals, $country, FALSE);
+    $this->cacheSet($cacheKey, $result);
+    return $result;
+  }
+
+  /**
+   * Get sitewide previous period conversion data.
+   *
+   * @param int $days
+   *   Number of days.
+   * @param array<int, array<string, mixed>> $goals
+   *   Conversion goals from config.
+   * @param string $country
+   *   Optional country filter.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Previous period rows.
+   */
+  public function getSitewidePrevConversions(int $days, array $goals, string $country = ''): array {
+    $goalsHash = md5(serialize($goals));
+    $cacheKey = "analyze_posthog:sitewide:prev_conversions:{$days}:{$goalsHash}:" . md5($country);
+    $cached = $this->cache->get($cacheKey);
+    if ($cached) {
+      return $cached->data;
+    }
+
+    $result = $this->fetchSitewideConversions($days, $goals, $country, TRUE);
+    $this->cacheSet($cacheKey, $result);
+    return $result;
+  }
+
+  /**
+   * Get available custom event names from PostHog.
+   *
+   * @param int $days
+   *   Number of days to look back.
+   *
+   * @return array<int, array{event: string, count: int}>
+   *   Array of events with their counts.
+   */
+  public function getAvailableEvents(int $days = 30): array {
+    $cacheKey = "analyze_posthog:available_events:{$days}";
+    $cached = $this->cache->get($cacheKey);
+    if ($cached) {
+      return $cached->data;
+    }
+
+    $timeFilter = $this->buildTimeFilter($days);
+    $sql = "SELECT event, count() as cnt "
+      . "FROM events "
+      . "WHERE event NOT LIKE '\$%' "
+      . $timeFilter . " "
+      . "GROUP BY event "
+      . "ORDER BY cnt DESC "
+      . "LIMIT 50";
+
+    $result = $this->hogqlQuery($sql);
+    $events = [];
+    if ($result !== NULL && !empty($result['results'])) {
+      foreach ($result['results'] as $row) {
+        $events[] = [
+          'event' => (string) ($row[0] ?? ''),
+          'count' => (int) ($row[1] ?? 0),
+        ];
+      }
+    }
+
+    $this->cacheSet($cacheKey, $events);
+    return $events;
+  }
+
+  /**
+   * Fetch conversion data for a specific page.
+   *
+   * @param string $pathname
+   *   The page pathname.
+   * @param int $days
+   *   Number of days.
+   * @param array<int, array<string, mixed>> $goals
+   *   Conversion goals.
+   * @param bool $previousPeriod
+   *   TRUE for previous period.
+   *
+   * @return array<string, mixed>
+   *   Conversion data.
+   */
+  protected function fetchConversions(string $pathname, int $days, array $goals, bool $previousPeriod): array {
+    $empty = [
+      'goals' => [],
+      'total_conversions' => 0,
+      'total_revenue' => 0.0,
+      'total_sessions' => 0,
+      'overall_rate' => 0.0,
+    ];
+
+    if (empty($goals)) {
+      return $empty;
+    }
+
+    $escapedPath = $this->escapeHogql($pathname);
+    $timeFilter = $this->buildTimeFilter($days, $previousPeriod);
+
+    // Build list of event names.
+    $eventNames = [];
+    $goalsByEvent = [];
+    foreach ($goals as $goal) {
+      $event = $this->escapeHogql($goal['event']);
+      $eventNames[] = "'" . $event . "'";
+      $goalsByEvent[$goal['event']] = $goal;
+    }
+    $eventsIn = implode(', ', $eventNames);
+
+    // Build revenue expression.
+    $revenueExpr = $this->buildRevenueExpression($goals);
+
+    // Conversion query: sessions that had a pageview of this page AND a goal.
+    $sql = "SELECT event as goal, "
+      . "count(DISTINCT properties.\$session_id) as conversions, "
+      . "sum({$revenueExpr}) as revenue "
+      . "FROM events "
+      . "WHERE event IN ({$eventsIn}) "
+      . "AND properties.\$session_id IN ("
+      . "SELECT DISTINCT properties.\$session_id "
+      . "FROM events "
+      . "WHERE event = '\$pageview' "
+      . "AND properties.\$pathname = '{$escapedPath}' "
+      . $timeFilter
+      . ") "
+      . $timeFilter . " "
+      . "GROUP BY goal";
+
+    $convResult = $this->hogqlQuery($sql);
+
+    // Get total sessions for this page for conversion rate.
+    $sessionsSql = "SELECT count(DISTINCT properties.\$session_id) "
+      . "FROM events "
+      . "WHERE event = '\$pageview' "
+      . "AND properties.\$pathname = '{$escapedPath}' "
+      . $timeFilter;
+    $sessionsResult = $this->hogqlQuery($sessionsSql);
+    $totalSessions = 0;
+    if ($sessionsResult !== NULL && !empty($sessionsResult['results'])) {
+      $totalSessions = (int) ($sessionsResult['results'][0][0] ?? 0);
+    }
+
+    $goalsData = [];
+    $totalConversions = 0;
+    $totalRevenue = 0.0;
+
+    if ($convResult !== NULL && !empty($convResult['results'])) {
+      foreach ($convResult['results'] as $row) {
+        $eventName = (string) ($row[0] ?? '');
+        $conversions = (int) ($row[1] ?? 0);
+        $revenue = (float) ($row[2] ?? 0);
+
+        $goalConfig = $goalsByEvent[$eventName] ?? NULL;
+        if ($goalConfig === NULL) {
+          continue;
+        }
+
+        // Apply fixed value if no value_property.
+        $fixedValue = (float) ($goalConfig['value'] ?? 0);
+        $valueProp = (string) ($goalConfig['value_property'] ?? '');
+        if ($fixedValue > 0 && $valueProp === '') {
+          $revenue = $fixedValue * $conversions;
+        }
+
+        $goalsData[$goalConfig['id']] = [
+          'label' => $goalConfig['label'],
+          'conversions' => $conversions,
+          'revenue' => $revenue,
+        ];
+
+        $totalConversions += $conversions;
+        $totalRevenue += $revenue;
+      }
+    }
+
+    // Ensure all goals appear even with 0 conversions.
+    foreach ($goals as $goal) {
+      if (!isset($goalsData[$goal['id']])) {
+        $goalsData[$goal['id']] = [
+          'label' => $goal['label'],
+          'conversions' => 0,
+          'revenue' => 0.0,
+        ];
+      }
+    }
+
+    $overallRate = $totalSessions > 0
+      ? ($totalConversions / $totalSessions) * 100
+      : 0.0;
+
+    return [
+      'goals' => $goalsData,
+      'total_conversions' => $totalConversions,
+      'total_revenue' => $totalRevenue,
+      'total_sessions' => $totalSessions,
+      'overall_rate' => $overallRate,
+    ];
+  }
+
+  /**
+   * Fetch sitewide conversion data (pages ranked by conversions).
+   *
+   * @param int $days
+   *   Number of days.
+   * @param array<int, array<string, mixed>> $goals
+   *   Conversion goals.
+   * @param string $country
+   *   Optional country filter.
+   * @param bool $previousPeriod
+   *   TRUE for previous period.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Rows with 'key' (page), 'conversions', 'revenue', 'pageviews'.
+   */
+  protected function fetchSitewideConversions(int $days, array $goals, string $country, bool $previousPeriod): array {
+    if (empty($goals)) {
+      return [];
+    }
+
+    $timeFilter = $this->buildTimeFilter($days, $previousPeriod);
+    $countryFilter = $this->buildCountryFilter($country);
+
+    $eventNames = [];
+    foreach ($goals as $goal) {
+      $eventNames[] = "'" . $this->escapeHogql($goal['event']) . "'";
+    }
+    $eventsIn = implode(', ', $eventNames);
+
+    $revenueExpr = $this->buildRevenueExpression($goals, 'conv');
+
+    $sql = "SELECT "
+      . "pv.properties.\$pathname as page, "
+      . "count(DISTINCT conv.properties.\$session_id) as conversions, "
+      . "sum({$revenueExpr}) as revenue "
+      . "FROM events conv "
+      . "JOIN events pv "
+      . "ON conv.properties.\$session_id = pv.properties.\$session_id "
+      . "WHERE conv.event IN ({$eventsIn}) "
+      . "AND pv.event = '\$pageview' "
+      . $this->prefixTimeFilter($timeFilter, 'conv')
+      . $this->prefixTimeFilter($timeFilter, 'pv')
+      . str_replace('properties.', 'pv.properties.', $countryFilter) . " "
+      . "GROUP BY page "
+      . "ORDER BY conversions DESC "
+      . "LIMIT 100";
+
+    $result = $this->hogqlQuery($sql);
+    $rows = [];
+    if ($result !== NULL && !empty($result['results'])) {
+      foreach ($result['results'] as $row) {
+        $key = (string) ($row[0] ?? '');
+        if ($key === '' || $key === 'null') {
+          $key = '(not set)';
+        }
+        $rows[] = [
+          'key' => $key,
+          'conversions' => (int) ($row[1] ?? 0),
+          'revenue' => (float) ($row[2] ?? 0),
+          'pageviews' => (int) ($row[1] ?? 0),
+          'visitors' => 0,
+        ];
+      }
+    }
+
+    return $rows;
+  }
+
+  /**
+   * Build a SQL revenue expression based on goal configuration.
+   *
+   * @param array<int, array<string, mixed>> $goals
+   *   Conversion goals.
+   * @param string $alias
+   *   Optional table alias prefix (e.g. 'conv') for JOIN queries.
+   *
+   * @return string
+   *   HogQL expression for revenue calculation.
+   */
+  protected function buildRevenueExpression(array $goals, string $alias = ''): string {
+    $prefix = $alias !== '' ? $alias . '.' : '';
+
+    // Build CASE expression handling both fixed values and property-based values.
+    $cases = [];
+    foreach ($goals as $goal) {
+      $event = $this->escapeHogql($goal['event']);
+      $valueProp = (string) ($goal['value_property'] ?? '');
+      $fixedValue = (float) ($goal['value'] ?? 0);
+
+      if ($valueProp !== '') {
+        // Read revenue from event property.
+        $escapedProp = $this->escapeHogql($valueProp);
+        $cases[] = "WHEN {$prefix}event = '{$event}' THEN ifNull(toFloat({$prefix}properties.{$escapedProp}), 0)";
+      }
+      elseif ($fixedValue > 0) {
+        // Use fixed value per conversion.
+        $cases[] = "WHEN {$prefix}event = '{$event}' THEN {$fixedValue}";
+      }
+    }
+
+    if (!empty($cases)) {
+      return "CASE " . implode(' ', $cases) . " ELSE 0 END";
+    }
+
+    return '0';
+  }
+
+  /**
+   * Prefix a time filter clause with a table alias.
+   *
+   * Converts "AND timestamp > ..." to "AND {alias}.timestamp > ..." for joins.
+   *
+   * @param string $timeFilter
+   *   The time filter clause.
+   * @param string $alias
+   *   The table alias.
+   *
+   * @return string
+   *   The prefixed clause.
+   */
+  protected function prefixTimeFilter(string $timeFilter, string $alias): string {
+    return str_replace('timestamp', $alias . '.timestamp', $timeFilter) . ' ';
+  }
+
+  /**
+   * Get sitewide conversion totals for KPI display.
+   *
+   * @param int $days
+   *   Number of days.
+   * @param array<int, array<string, mixed>> $goals
+   *   Conversion goals.
+   * @param string $country
+   *   Optional country filter.
+   *
+   * @return array<string, mixed>
+   *   Array with 'total_conversions' and 'total_revenue' keys.
+   */
+  public function getSitewideConversionTotals(int $days, array $goals, string $country = ''): array {
+    $goalsHash = md5(serialize($goals));
+    $cacheKey = "analyze_posthog:sitewide:conv_totals:{$days}:{$goalsHash}:" . md5($country);
+    $cached = $this->cache->get($cacheKey);
+    if ($cached) {
+      return $cached->data;
+    }
+
+    if (empty($goals)) {
+      return ['total_conversions' => 0, 'total_revenue' => 0.0];
+    }
+
+    $timeFilter = $this->buildTimeFilter($days);
+    $countryFilter = $this->buildCountryFilter($country);
+
+    $eventNames = [];
+    foreach ($goals as $goal) {
+      $eventNames[] = "'" . $this->escapeHogql($goal['event']) . "'";
+    }
+    $eventsIn = implode(', ', $eventNames);
+
+    $revenueExpr = $this->buildRevenueExpression($goals, 'conv');
+
+    // For sitewide totals we use a simpler join that counts sessions.
+    $sql = "SELECT "
+      . "count(DISTINCT conv.properties.\$session_id) as conversions, "
+      . "sum({$revenueExpr}) as revenue "
+      . "FROM events conv "
+      . "JOIN events pv "
+      . "ON conv.properties.\$session_id = pv.properties.\$session_id "
+      . "WHERE conv.event IN ({$eventsIn}) "
+      . "AND pv.event = '\$pageview' "
+      . $this->prefixTimeFilter($timeFilter, 'conv')
+      . $this->prefixTimeFilter($timeFilter, 'pv')
+      . str_replace('properties.', 'pv.properties.', $countryFilter);
+
+    $result = $this->hogqlQuery($sql);
+    $totals = ['total_conversions' => 0, 'total_revenue' => 0.0];
+    if ($result !== NULL && !empty($result['results'])) {
+      $totals['total_conversions'] = (int) ($result['results'][0][0] ?? 0);
+      $totals['total_revenue'] = (float) ($result['results'][0][1] ?? 0);
+    }
+
+    $this->cacheSet($cacheKey, $totals);
+    return $totals;
+  }
+
+  /**
+   * Get sitewide previous period conversion totals.
+   *
+   * @param int $days
+   *   Number of days.
+   * @param array<int, array<string, mixed>> $goals
+   *   Conversion goals.
+   * @param string $country
+   *   Optional country filter.
+   *
+   * @return array<string, mixed>
+   *   Array with 'total_conversions' and 'total_revenue' keys.
+   */
+  public function getSitewidePrevConversionTotals(int $days, array $goals, string $country = ''): array {
+    $goalsHash = md5(serialize($goals));
+    $cacheKey = "analyze_posthog:sitewide:prev_conv_totals:{$days}:{$goalsHash}:" . md5($country);
+    $cached = $this->cache->get($cacheKey);
+    if ($cached) {
+      return $cached->data;
+    }
+
+    if (empty($goals)) {
+      return ['total_conversions' => 0, 'total_revenue' => 0.0];
+    }
+
+    $timeFilter = $this->buildTimeFilter($days, TRUE);
+    $countryFilter = $this->buildCountryFilter($country);
+
+    $eventNames = [];
+    foreach ($goals as $goal) {
+      $eventNames[] = "'" . $this->escapeHogql($goal['event']) . "'";
+    }
+    $eventsIn = implode(', ', $eventNames);
+
+    $revenueExpr = $this->buildRevenueExpression($goals, 'conv');
+
+    $sql = "SELECT "
+      . "count(DISTINCT conv.properties.\$session_id) as conversions, "
+      . "sum({$revenueExpr}) as revenue "
+      . "FROM events conv "
+      . "JOIN events pv "
+      . "ON conv.properties.\$session_id = pv.properties.\$session_id "
+      . "WHERE conv.event IN ({$eventsIn}) "
+      . "AND pv.event = '\$pageview' "
+      . $this->prefixTimeFilter($timeFilter, 'conv')
+      . $this->prefixTimeFilter($timeFilter, 'pv')
+      . str_replace('properties.', 'pv.properties.', $countryFilter);
+
+    $result = $this->hogqlQuery($sql);
+    $totals = ['total_conversions' => 0, 'total_revenue' => 0.0];
+    if ($result !== NULL && !empty($result['results'])) {
+      $totals['total_conversions'] = (int) ($result['results'][0][0] ?? 0);
+      $totals['total_revenue'] = (float) ($result['results'][0][1] ?? 0);
+    }
+
+    $this->cacheSet($cacheKey, $totals);
+    return $totals;
+  }
+
+  /**
    * Escape a value for use in a HogQL query string.
    *
    * @param string $value

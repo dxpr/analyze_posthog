@@ -3,3 +3,4 @@ host: ''
 project_id: ''
 date_range: 28
 cache_ttl: 21600
+conversion_goals: []

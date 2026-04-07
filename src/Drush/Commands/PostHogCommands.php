@@ -88,7 +88,7 @@ final class PostHogCommands extends DrushCommands {
   #[CLI\Help(description: 'Fetch PostHog analytics data for a URL -- matches the entity Analyze tab.')]
   #[CLI\Argument(name: 'url', description: 'A path like /pricing.')]
   #[CLI\Option(name: 'days', description: 'Date range in days (7, 14, 28, 90, 180, 365).')]
-  #[CLI\Option(name: 'dimension', description: 'Primary dimension: referrer, country, device, browser.')]
+  #[CLI\Option(name: 'dimension', description: 'Primary dimension: referrer, country, device, browser, conversion.')]
   #[CLI\Option(name: 'status', description: 'Filter by status: all, up, down, new, lost.')]
   #[CLI\Option(name: 'search', description: 'Filter dimension keys by text (case-insensitive contains).')]
   #[CLI\Option(name: 'limit', description: 'Number of rows to display.')]
@@ -113,6 +113,14 @@ final class PostHogCommands extends DrushCommands {
     $statusFilter = $options['status'] ?? 'all';
     $searchFilter = $options['search'] ?? '';
     $limit = (int) $options['limit'];
+    $config = $this->configFactory->get('analyze_posthog.settings');
+    $goals = $config->get('conversion_goals') ?: [];
+
+    // Validate dimension.
+    if ($dimension === 'conversion' && empty($goals)) {
+      $this->logger()->error('No conversion goals configured. Add goals at /admin/config/analyze/posthog.');
+      return;
+    }
 
     $this->io()->writeln('');
     $this->io()->writeln('Path: ' . $pathname);
@@ -125,7 +133,51 @@ final class PostHogCommands extends DrushCommands {
       $this->logger()->warning('No data available for this path.');
       return;
     }
-    $this->printKpiTable($data);
+    $this->printKpiTable($data, $goals, $pathname, $days);
+
+    // Handle conversion dimension.
+    if ($dimension === 'conversion') {
+      $convData = $this->client->getPageConversions($pathname, $days, $goals);
+      $convComparison = $this->client->getPageConversionsWithComparison(
+        $pathname, $days, $goals
+      );
+
+      // Transform goals into rows.
+      $currentRows = [];
+      foreach ($convData['goals'] as $goalData) {
+        $currentRows[] = [
+          'key' => $goalData['label'],
+          'conversions' => $goalData['conversions'],
+          'revenue' => $goalData['revenue'],
+          'pageviews' => $goalData['conversions'],
+          'visitors' => 0,
+        ];
+      }
+      $prevRows = [];
+      if ($convComparison && $convComparison['previous']) {
+        foreach ($convComparison['previous']['goals'] as $goalData) {
+          $prevRows[] = [
+            'key' => $goalData['label'],
+            'conversions' => $goalData['conversions'],
+            'revenue' => $goalData['revenue'],
+            'pageviews' => $goalData['conversions'],
+            'visitors' => 0,
+          ];
+        }
+      }
+
+      $hasRevenue = $this->reportBuilder->goalsHaveRevenue($goals);
+      $enriched = $this->reportBuilder->enrichConversionComparison(
+        $currentRows, $prevRows
+      );
+      $enriched = $this->reportBuilder->filterRows(
+        $enriched, $statusFilter, $searchFilter
+      );
+      $enriched = array_slice($enriched, 0, $limit);
+
+      $this->printConversionDimensionTable($enriched, $hasRevenue, FALSE);
+      return;
+    }
 
     // Dimension breakdown with enrichment (matches entity UI).
     $currentRows = $this->client->getDimensionData(
@@ -156,7 +208,7 @@ final class PostHogCommands extends DrushCommands {
   #[CLI\Command(name: 'analyze:posthog:report', aliases: ['analyze-ph-report'])]
   #[CLI\Help(description: 'Sitewide PostHog analytics report -- matches the admin report page.')]
   #[CLI\Option(name: 'days', description: 'Date range in days (7, 14, 28, 90, 180, 365).')]
-  #[CLI\Option(name: 'dimension', description: 'Primary dimension: referrer, country, device, browser, page.')]
+  #[CLI\Option(name: 'dimension', description: 'Primary dimension: referrer, country, device, browser, page, conversion.')]
   #[CLI\Option(name: 'country', description: 'Filter by country name (e.g., "United States").')]
   #[CLI\Option(name: 'status', description: 'Filter by status: all, up, down, new, lost.')]
   #[CLI\Option(name: 'search', description: 'Filter dimension keys by text (case-insensitive contains).')]
@@ -182,6 +234,14 @@ final class PostHogCommands extends DrushCommands {
     $statusFilter = $options['status'] ?? 'all';
     $searchFilter = $options['search'] ?? '';
     $limit = (int) $options['limit'];
+    $config = $this->configFactory->get('analyze_posthog.settings');
+    $goals = $config->get('conversion_goals') ?: [];
+
+    // Validate conversion dimension.
+    if ($dimension === 'conversion' && empty($goals)) {
+      $this->logger()->error('No conversion goals configured. Add goals at /admin/config/analyze/posthog.');
+      return;
+    }
 
     $this->io()->writeln('');
     $this->io()->writeln('Period: ' . $this->reportBuilder->buildDateCaption($days));
@@ -195,7 +255,28 @@ final class PostHogCommands extends DrushCommands {
       $days, $country
     );
     if ($summary && $summary['current']) {
-      $this->printKpiTable($summary);
+      $this->printKpiTable($summary, $goals, '', $days, $country);
+    }
+
+    // Handle conversion dimension.
+    if ($dimension === 'conversion') {
+      $currentRows = $this->client->getSitewideConversions(
+        $days, $goals, $country
+      );
+      $prevRows = $this->client->getSitewidePrevConversions(
+        $days, $goals, $country
+      );
+      $hasRevenue = $this->reportBuilder->goalsHaveRevenue($goals);
+      $enriched = $this->reportBuilder->enrichConversionComparison(
+        $currentRows, $prevRows
+      );
+      $enriched = $this->reportBuilder->filterRows(
+        $enriched, $statusFilter, $searchFilter
+      );
+      $enriched = array_slice($enriched, 0, $limit);
+
+      $this->printConversionDimensionTable($enriched, $hasRevenue, TRUE);
+      return;
     }
 
     // Dimension data with enrichment via ReportBuilder (matches sitewide UI).
@@ -229,12 +310,61 @@ final class PostHogCommands extends DrushCommands {
   }
 
   /**
-   * Print a KPI summary table with comparison.
+   * List configured conversion goals with live event counts.
+   */
+  #[CLI\Command(name: 'analyze:posthog:goals', aliases: ['analyze-ph-goals'])]
+  #[CLI\Help(description: 'List configured conversion goals with live event counts.')]
+  public function goals(): void {
+    if (!$this->client->isConfigured()) {
+      $this->logger()->error('Not configured. Run: drush analyze-ph-status');
+      return;
+    }
+
+    $config = $this->configFactory->get('analyze_posthog.settings');
+    $goals = $config->get('conversion_goals') ?: [];
+
+    if (empty($goals)) {
+      $this->logger()->warning('No conversion goals configured. Add goals at /admin/config/analyze/posthog.');
+      return;
+    }
+
+    // Fetch available events for counts.
+    $availableEvents = $this->client->getAvailableEvents();
+    $eventCounts = [];
+    foreach ($availableEvents as $eventData) {
+      $eventCounts[$eventData['event']] = $eventData['count'];
+    }
+
+    $headers = ['ID', 'Label', 'Event', 'Last 30d events'];
+    $rows = [];
+    foreach ($goals as $goal) {
+      $count = $eventCounts[$goal['event']] ?? 0;
+      $rows[] = [
+        $goal['id'],
+        $goal['label'],
+        $goal['event'],
+        number_format($count),
+      ];
+    }
+
+    $this->io()->table($headers, $rows);
+  }
+
+  /**
+   * Print a KPI summary table with comparison and optional conversion columns.
    *
    * @param array<string, mixed> $data
    *   Metrics data with 'current', 'previous', and 'change' keys.
+   * @param array<int, array<string, mixed>> $goals
+   *   Conversion goals (empty to skip conversion KPIs).
+   * @param string $pathname
+   *   Page pathname (empty for sitewide).
+   * @param int $days
+   *   Date range in days.
+   * @param string $country
+   *   Optional country filter (sitewide only).
    */
-  protected function printKpiTable(array $data): void {
+  protected function printKpiTable(array $data, array $goals = [], string $pathname = '', int $days = 28, string $country = ''): void {
     $c = $data['current'];
     $ch = $data['change'];
 
@@ -245,6 +375,32 @@ final class PostHogCommands extends DrushCommands {
       number_format((int) $c['sessions']) . ($ch ? ' (' . $ch['sessions']['formatted'] . ')' : ''),
       number_format($c['bounce_rate'], 1) . '%' . ($ch ? ' (' . $ch['bounce_rate']['formatted'] . ')' : ''),
     ];
+
+    // Add conversion KPI columns when goals are configured.
+    if (!empty($goals)) {
+      if ($pathname !== '') {
+        $convComparison = $this->client->getPageConversionsWithComparison(
+          $pathname, $days, $goals
+        );
+        $convData = $convComparison ? $convComparison['current'] : [];
+        $prevConvData = $convComparison ? $convComparison['previous'] : NULL;
+      }
+      else {
+        $convData = $this->client->getSitewideConversionTotals(
+          $days, $goals, $country
+        );
+        $prevConvData = $this->client->getSitewidePrevConversionTotals(
+          $days, $goals, $country
+        );
+      }
+
+      $hasRevenue = $this->reportBuilder->goalsHaveRevenue($goals);
+      $convKpi = $this->reportBuilder->printConversionKpi(
+        $convData, $prevConvData, $hasRevenue
+      );
+      $headers = array_merge($headers, $convKpi['headers']);
+      $row = array_merge($row, $convKpi['values']);
+    }
 
     $this->io()->table($headers, [$row]);
   }
@@ -287,6 +443,30 @@ final class PostHogCommands extends DrushCommands {
 
     $this->io()->writeln('');
     $this->io()->table($headers, $tableRows);
+  }
+
+  /**
+   * Print a conversion dimension table for Drush output.
+   *
+   * @param array<int, array<string, mixed>> $rows
+   *   Enriched conversion rows.
+   * @param bool $hasRevenue
+   *   Whether to show the revenue column.
+   * @param bool $isSitewide
+   *   TRUE if sitewide (first col = Page), FALSE for entity (first col = Goal).
+   */
+  protected function printConversionDimensionTable(array $rows, bool $hasRevenue, bool $isSitewide): void {
+    if (empty($rows)) {
+      $this->io()->writeln('No conversion data found.');
+      return;
+    }
+
+    $tableData = $this->reportBuilder->printConversionTable(
+      $rows, $hasRevenue, $isSitewide
+    );
+
+    $this->io()->writeln('');
+    $this->io()->table($tableData['headers'], $tableData['rows']);
   }
 
   /**

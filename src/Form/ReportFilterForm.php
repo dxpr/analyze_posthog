@@ -97,6 +97,11 @@ final class ReportFilterForm extends FormBase {
     if ($show_country) {
       $dimensionOptions['page'] = $this->t('Pages');
     }
+    // Conversion dimension only when goals are configured.
+    $goals = $config->get('conversion_goals') ?: [];
+    if (!empty($goals)) {
+      $dimensionOptions['conversion'] = $this->t('Conversions');
+    }
 
     $form['dimension'] = [
       '#type' => 'select',

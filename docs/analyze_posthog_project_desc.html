@@ -1,0 +1,80 @@
+<p>This module is part of the <a href="https://www.drupal.org/project/analyze">Analyze</a> module ecosystem and included in <a href="https://www.drupal.org/project/dxpr_cms">DXPR CMS</a>.</p>
+
+<h2>Your Analytics Data Belongs Next to Your Content, Not in Another Tab</h2>
+
+<blockquote>You're editing a page. How many visitors did it get this month? Is traffic growing or declining? Which countries and devices are your audience using? Right now you'd switch to PostHog, find the URL, set the date range, and read a dashboard. With this module, that data is right there on the Analyze tab — every entity, every metric, zero context switching.</blockquote>
+
+<h3>You need Analyze PostHog if</h3>
+<ul>
+  <li>You use PostHog for product analytics (cloud or self-hosted) and want to see traffic data per page inside Drupal</li>
+  <li>Your content team needs pageview, visitor, and session counts without leaving the CMS</li>
+  <li>You want to compare this period to the previous one and spot trends at a glance — not just static numbers</li>
+  <li>You need to break down traffic by referrer, country, device, or browser for targeted content decisions</li>
+</ul>
+
+<h2>How It Works</h2>
+<p>Install the module, store your PostHog API key using the Key module, enter your PostHog host and project ID in the settings, and you're connected. Every content entity with a URL path gets analytics data in its Analyze tab — pulled live from PostHog's HogQL API. A sitewide report surfaces traffic patterns across your entire site.</p>
+
+<h2>What You Get</h2>
+<ul>
+  <li>
+    <strong>Pageviews, visitors, sessions, and bounce rate per page</strong>
+    <p>Every content entity shows its PostHog performance in the Analyze tab — with change vs the previous period (e.g., "397 pageviews (+12.3%)") so you see trends, not just numbers.</p>
+  </li>
+  <li>
+    <strong>Dimension breakdowns</strong>
+    <p>Drill into the full report to see where your traffic comes from and how it behaves:</p>
+    <ul>
+      <li><strong>Referrer</strong> — which sites and campaigns send visitors to this page</li>
+      <li><strong>Country</strong> — geographic distribution of your audience</li>
+      <li><strong>Device</strong> — desktop vs mobile vs tablet breakdown</li>
+      <li><strong>Browser</strong> — Chrome, Firefox, Safari, and others</li>
+      <li><strong>Page</strong> — top pages across your site (sitewide report)</li>
+    </ul>
+  </li>
+  <li>
+    <strong>Sitewide and entity-level reports</strong>
+    <p>The sitewide report at /admin/reports/posthog shows KPIs and dimension tables for your entire site. Entity reports show the same data scoped to a single page. Both include previous period comparison.</p>
+  </li>
+  <li>
+    <strong>Filters for focused analysis</strong>
+    <p>Filter reports by country, status (new, up, down, lost), and text search to zero in on the data that matters. Filters work on both sitewide and entity reports.</p>
+  </li>
+  <li>
+    <strong>Session replay link</strong>
+    <p>Jump directly from the Analyze tab to PostHog's session replay — pre-filtered to the current page — and watch real users interact with your content.</p>
+  </li>
+  <li>
+    <strong>Conversion attribution (coming soon)</strong>
+    <p>Connect page visits to business outcomes. Define conversion goals (signups, purchases, form submissions) and see which pages drive the most conversions — using PostHog's session-based attribution.</p>
+  </li>
+  <li>
+    <strong>Drush commands</strong>
+    <p>Query analytics for any URL, view sitewide reports, check connection status, and clear the cache from the command line — useful for scripted reporting, CI pipelines, and DevOps workflows.</p>
+  </li>
+</ul>
+
+<h2>Getting Started</h2>
+<ol>
+  <li>Install with Composer: <code>composer require drupal/analyze_posthog</code></li>
+  <li>Enable the module and the <a href="https://www.drupal.org/project/key">Key</a> module</li>
+  <li>Create a <a href="https://posthog.com/docs/api">PostHog personal API key</a> with read access</li>
+  <li>Store the API key at /admin/config/system/keys (Key module) and configure your PostHog host and project ID at /admin/config/analyze/posthog</li>
+  <li>Enable the analyzer per content type at /admin/config/content/analyze-settings</li>
+</ol>
+
+<div class="note-tip">
+  <h4>Prefer a turnkey demo site?</h4>
+  <p>Spin up <strong>DXPR CMS</strong> — Drupal pre-configured with DXPR Builder, DXPR Theme, the full Analyze suite including PostHog integration, and security best practices out of the box.</p>
+  <p><a href="https://www.drupal.org/project/dxpr_cms" title="DXPR CMS platform">Get DXPR CMS &raquo;</a></p>
+</div>
+
+<h3 id="module-project--additional-requirements">Additional requirements</h3>
+<p>
+  This module requires:
+  <ul>
+    <li><a href="https://www.drupal.org/project/analyze">Analyze</a> module (>=1.1.0)</li>
+    <li><a href="https://www.drupal.org/project/key">Key</a> module for secure API key storage</li>
+    <li>A <a href="https://posthog.com/">PostHog</a> account (cloud or self-hosted) with a personal API key</li>
+  </ul>
+</p>

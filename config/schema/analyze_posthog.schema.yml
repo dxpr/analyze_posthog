@@ -17,3 +17,31 @@ analyze_posthog.settings:
     cache_ttl:
       type: integer
       label: 'Cache TTL in seconds'
+    conversion_goals:
+      type: sequence
+      label: 'Conversion goals'
+      sequence:
+        type: analyze_posthog.conversion_goal
+
+analyze_posthog.conversion_goal:
+  type: mapping
+  label: 'Conversion goal'
+  mapping:
+    id:
+      type: string
+      label: 'Machine name'
+    label:
+      type: string
+      label: 'Human-readable label'
+    event:
+      type: string
+      label: 'PostHog event name'
+    value:
+      type: float
+      label: 'Fixed monetary value per conversion'
+    value_property:
+      type: string
+      label: 'Event property containing monetary value'
+    currency:
+      type: string
+      label: 'Currency code (ISO 4217)'

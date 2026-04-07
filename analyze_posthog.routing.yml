@@ -10,6 +10,6 @@ analyze_posthog.report:
   path: '/admin/reports/posthog'
   defaults:
     _controller: 'Drupal\analyze_posthog\Controller\ReportController::report'
-    _title: 'Site Analytics'
+    _title: 'PostHog Analytics Report'
   requirements:
     _permission: 'access posthog analytics'

@@ -153,16 +153,48 @@ final class PostHog extends AnalyzePluginBase {
       }
     }
 
+    $rows = [
+      ['label' => 'Pageviews', 'data' => $pageviews],
+      ['label' => 'Unique visitors', 'data' => $visitors],
+      ['label' => 'Sessions', 'data' => $sessions],
+      ['label' => 'Bounce rate', 'data' => $bounceRate],
+      ['label' => 'Avg time on page', 'data' => $avgTime],
+    ];
+
+    // Append conversion metrics when goals are configured.
+    $goals = $config->get('conversion_goals') ?: [];
+    if (!empty($goals)) {
+      $convData = $this->client->getPageConversionsWithComparison(
+        $pathname, $days, $goals
+      );
+      if ($convData !== NULL) {
+        $curConv = $convData['current'];
+        $prevConv = $convData['previous'];
+        $convStr = number_format((int) $curConv['total_conversions']);
+        if ($prevConv && $prevConv['total_conversions'] > 0) {
+          $pct = (($curConv['total_conversions'] - $prevConv['total_conversions']) / $prevConv['total_conversions']) * 100;
+          $sign = $pct >= 0 ? '+' : '';
+          $convStr .= ' (' . $sign . number_format($pct, 1) . '%)';
+        }
+        $rows[] = ['label' => 'Conversions', 'data' => $convStr];
+
+        $hasRevenue = $this->reportBuilder->goalsHaveRevenue($goals);
+        if ($hasRevenue) {
+          $revStr = '$' . number_format((float) $curConv['total_revenue'], 2);
+          if ($prevConv && $prevConv['total_revenue'] > 0) {
+            $pct = (($curConv['total_revenue'] - $prevConv['total_revenue']) / $prevConv['total_revenue']) * 100;
+            $sign = $pct >= 0 ? '+' : '';
+            $revStr .= ' (' . $sign . number_format($pct, 1) . '%)';
+          }
+          $rows[] = ['label' => 'Conv. value', 'data' => $revStr];
+        }
+      }
+    }
+
     return [
       '#theme' => 'analyze_table',
       '#table_title' => 'PostHog Analytics (Last ' . $days . ' Days)',
-      '#rows' => [
-        ['label' => 'Pageviews', 'data' => $pageviews],
-        ['label' => 'Unique visitors', 'data' => $visitors],
-        ['label' => 'Sessions', 'data' => $sessions],
-        ['label' => 'Bounce rate', 'data' => $bounceRate],
-        ['label' => 'Avg time on page', 'data' => $avgTime],
-      ],
+      '#rows' => $rows,
     ];
   }
 
@@ -189,8 +221,15 @@ final class PostHog extends AnalyzePluginBase {
     $statusFilter = $request?->query->get('status') ?? 'all';
     $querySearch = $request?->query->get('q') ?? '';
 
+    // Check for conversion goals.
+    $goals = $config->get('conversion_goals') ?: [];
+    $validDimensions = ['referrer', 'country', 'device', 'browser'];
+    if (!empty($goals)) {
+      $validDimensions[] = 'conversion';
+    }
+
     // Validate.
-    if (!in_array($dimension, ['referrer', 'country', 'device', 'browser'], TRUE)) {
+    if (!in_array($dimension, $validDimensions, TRUE)) {
       $dimension = 'referrer';
     }
     if (!in_array($days, [7, 14, 28, 90, 180, 365], TRUE)) {
@@ -218,51 +257,130 @@ final class PostHog extends AnalyzePluginBase {
     // KPI summary -- below filters, responds to selected period.
     $metricsData = $this->client->getPageMetricsWithComparison($pathname, $days);
     if ($metricsData && $metricsData['current']) {
-      $build['kpi'] = $this->reportBuilder->buildKpiTable(
-        $metricsData,
-        $this->reportBuilder->buildDateCaption($days)
-      );
+      // When goals are configured, add conversion KPI columns.
+      if (!empty($goals)) {
+        $convComparison = $this->client->getPageConversionsWithComparison(
+          $pathname, $days, $goals
+        );
+        $hasRevenue = $this->reportBuilder->goalsHaveRevenue($goals);
+        $convCells = $this->reportBuilder->buildConversionKpiCells(
+          $convComparison ? $convComparison['current'] : [],
+          $convComparison ? $convComparison['previous'] : NULL,
+          $hasRevenue
+        );
+        $kpiTable = $this->reportBuilder->buildKpiTable(
+          $metricsData,
+          $this->reportBuilder->buildDateCaption($days)
+        );
+        $kpiTable['#header'][] = $this->t('Conversions');
+        $kpiTable['#rows'][0][] = $convCells['conversions'];
+        if (isset($convCells['revenue'])) {
+          $kpiTable['#header'][] = $this->t('Conv. value');
+          $kpiTable['#rows'][0][] = $convCells['revenue'];
+        }
+        $build['kpi'] = $kpiTable;
+      }
+      else {
+        $build['kpi'] = $this->reportBuilder->buildKpiTable(
+          $metricsData,
+          $this->reportBuilder->buildDateCaption($days)
+        );
+      }
       $build['kpi']['#weight'] = -7;
     }
 
-    // Fetch and enrich data.
-    $currentRows = $this->client->getDimensionData(
-      $pathname, $days, $dimension, 100
-    );
-    $prevRows = $this->client->getPreviousPeriodDimensionData(
-      $pathname, $days, $dimension, 100
-    );
-    $enrichedRows = $this->reportBuilder->enrichWithComparison(
-      $currentRows, $prevRows
-    );
+    // Handle conversion dimension separately.
+    if ($dimension === 'conversion' && !empty($goals)) {
+      $convData = $this->client->getPageConversions($pathname, $days, $goals);
+      // Transform per-goal data into rows for the table.
+      $currentRows = [];
+      foreach ($convData['goals'] as $goalData) {
+        $currentRows[] = [
+          'key' => $goalData['label'],
+          'conversions' => $goalData['conversions'],
+          'revenue' => $goalData['revenue'],
+          'pageviews' => $goalData['conversions'],
+          'visitors' => 0,
+        ];
+      }
+      // Use previous-period data from comparison.
+      $convComparison = $this->client->getPageConversionsWithComparison(
+        $pathname, $days, $goals
+      );
+      $prevRows = [];
+      if ($convComparison && $convComparison['previous']) {
+        foreach ($convComparison['previous']['goals'] as $goalData) {
+          $prevRows[] = [
+            'key' => $goalData['label'],
+            'conversions' => $goalData['conversions'],
+            'revenue' => $goalData['revenue'],
+            'pageviews' => $goalData['conversions'],
+            'visitors' => 0,
+          ];
+        }
+      }
 
-    // Apply search and status filters.
-    $enrichedRows = $this->reportBuilder->filterRows(
-      $enrichedRows, $statusFilter, $querySearch
-    );
+      $hasRevenue = $this->reportBuilder->goalsHaveRevenue($goals);
+      $enrichedRows = $this->reportBuilder->enrichConversionComparison(
+        $currentRows, $prevRows
+      );
 
-    // Paginate.
-    $itemsPerPage = 20;
-    $totalItems = count($enrichedRows);
-    $currentPage = $this->pagerManager
-      ->createPager($totalItems, $itemsPerPage)
-      ->getCurrentPage();
-    $pagedRows = array_slice(
-      $enrichedRows,
-      $currentPage * $itemsPerPage,
-      $itemsPerPage
-    );
+      // Apply search and status filters.
+      $enrichedRows = $this->reportBuilder->filterRows(
+        $enrichedRows, $statusFilter, $querySearch
+      );
 
-    // Data table -- same builder as sitewide report.
-    if (empty($pagedRows)) {
-      $build['empty'] = [
-        '#markup' => '<p>' . $this->t('No analytics data available for this page.') . '</p>',
-      ];
+      if (empty($enrichedRows)) {
+        $build['empty'] = [
+          '#markup' => '<p>' . $this->t('No conversion data available for this page.') . '</p>',
+        ];
+      }
+      else {
+        $build['table'] = $this->reportBuilder->buildConversionTable(
+          $enrichedRows, $hasRevenue, FALSE, $request, $days
+        );
+      }
     }
     else {
-      $build['table'] = $this->reportBuilder->buildDataTable(
-        $pagedRows, $dimension, $request, $days
+      // Fetch and enrich data (existing pageview dimension logic).
+      $currentRows = $this->client->getDimensionData(
+        $pathname, $days, $dimension, 100
       );
+      $prevRows = $this->client->getPreviousPeriodDimensionData(
+        $pathname, $days, $dimension, 100
+      );
+      $enrichedRows = $this->reportBuilder->enrichWithComparison(
+        $currentRows, $prevRows
+      );
+
+      // Apply search and status filters.
+      $enrichedRows = $this->reportBuilder->filterRows(
+        $enrichedRows, $statusFilter, $querySearch
+      );
+
+      // Paginate.
+      $itemsPerPage = 20;
+      $totalItems = count($enrichedRows);
+      $currentPage = $this->pagerManager
+        ->createPager($totalItems, $itemsPerPage)
+        ->getCurrentPage();
+      $pagedRows = array_slice(
+        $enrichedRows,
+        $currentPage * $itemsPerPage,
+        $itemsPerPage
+      );
+
+      // Data table -- same builder as sitewide report.
+      if (empty($pagedRows)) {
+        $build['empty'] = [
+          '#markup' => '<p>' . $this->t('No analytics data available for this page.') . '</p>',
+        ];
+      }
+      else {
+        $build['table'] = $this->reportBuilder->buildDataTable(
+          $pagedRows, $dimension, $request, $days
+        );
+      }
     }
 
     // Pager.
@@ -319,12 +437,36 @@ final class PostHog extends AnalyzePluginBase {
     $host = $config->get('host');
 
     if ($host) {
+      $cleanHost = rtrim((string) $host, '/');
       $links[] = [
         'title' => $this->t('View in PostHog'),
-        'url' => Url::fromUri(rtrim((string) $host, '/') . '/web', [
+        'url' => Url::fromUri($cleanHost . '/web', [
           'attributes' => ['target' => '_blank', 'rel' => 'noopener'],
         ]),
       ];
+
+      // "Watch sessions" link -- deep-link to PostHog session replay.
+      $pathname = $this->client->getEntityUrl($entity);
+      if ($pathname !== NULL) {
+        $replayFilter = json_encode([
+          [
+            'key' => '$pathname',
+            'value' => [$pathname],
+            'operator' => 'exact',
+            'type' => 'recording',
+          ],
+        ]);
+        $links[] = [
+          'title' => $this->t('Watch sessions'),
+          'url' => Url::fromUri($cleanHost . '/replay', [
+            'query' => [
+              'filter_test_accounts' => 'false',
+              'properties' => $replayFilter,
+            ],
+            'attributes' => ['target' => '_blank', 'rel' => 'noopener'],
+          ]),
+        ];
+      }
     }
 
     return $links;

@@ -6,7 +6,7 @@ analyze_posthog.settings:
   weight: 6
 
 analyze_posthog.report:
-  title: 'Site Analytics'
+  title: 'PostHog Analytics'
   description: 'View PostHog website analytics.'
   parent: system.admin_reports
   route_name: analyze_posthog.report

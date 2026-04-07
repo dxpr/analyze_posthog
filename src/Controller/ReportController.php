@@ -71,8 +71,15 @@ final class ReportController extends ControllerBase {
     $querySearch = $request->query->get('q', '');
     $countryFilter = $request->query->get('country', '');
 
+    // Check for conversion goals.
+    $goals = $config->get('conversion_goals') ?: [];
+    $validDimensions = ['referrer', 'country', 'device', 'browser', 'page'];
+    if (!empty($goals)) {
+      $validDimensions[] = 'conversion';
+    }
+
     // Validate inputs.
-    if (!in_array($dimension, ['referrer', 'country', 'device', 'browser', 'page'], TRUE)) {
+    if (!in_array($dimension, $validDimensions, TRUE)) {
       $dimension = 'referrer';
     }
     if (!in_array($days, [7, 14, 28, 90, 180, 365], TRUE)) {
@@ -102,51 +109,121 @@ final class ReportController extends ControllerBase {
       $countryFilter
     );
     if ($metricsData && $metricsData['current']) {
-      $build['kpi'] = $this->reportBuilder->buildKpiTable(
-        $metricsData,
-        $this->reportBuilder->buildDateCaption($days)
-      );
+      // When goals are configured, add conversion KPI columns.
+      if (!empty($goals)) {
+        $convTotals = $this->client->getSitewideConversionTotals(
+          $days, $goals, $countryFilter
+        );
+        $prevConvTotals = $this->client->getSitewidePrevConversionTotals(
+          $days, $goals, $countryFilter
+        );
+        $hasRevenue = $this->reportBuilder->goalsHaveRevenue($goals);
+        $convCells = $this->reportBuilder->buildConversionKpiCells(
+          $convTotals, $prevConvTotals, $hasRevenue
+        );
+        $kpiTable = $this->reportBuilder->buildKpiTable(
+          $metricsData,
+          $this->reportBuilder->buildDateCaption($days)
+        );
+        // Append conversion headers and cells to KPI table.
+        $kpiTable['#header'][] = $this->t('Conversions');
+        $kpiTable['#rows'][0][] = $convCells['conversions'];
+        if (isset($convCells['revenue'])) {
+          $kpiTable['#header'][] = $this->t('Conv. value');
+          $kpiTable['#rows'][0][] = $convCells['revenue'];
+        }
+        $build['kpi'] = $kpiTable;
+      }
+      else {
+        $build['kpi'] = $this->reportBuilder->buildKpiTable(
+          $metricsData,
+          $this->reportBuilder->buildDateCaption($days)
+        );
+      }
       $build['kpi']['#weight'] = -7;
     }
 
-    // Fetch and enrich data.
-    $currentRows = $this->client->getSitewideDimensionData(
-      $days, $dimension, 100, $countryFilter
-    );
-    $prevRows = $this->client->getSitewidePrevDimensionData(
-      $days, $dimension, 100, $countryFilter
-    );
-    $enrichedRows = $this->reportBuilder->enrichWithComparison(
-      $currentRows, $prevRows
-    );
+    // Handle conversion dimension separately.
+    if ($dimension === 'conversion' && !empty($goals)) {
+      $currentRows = $this->client->getSitewideConversions(
+        $days, $goals, $countryFilter
+      );
+      $prevRows = $this->client->getSitewidePrevConversions(
+        $days, $goals, $countryFilter
+      );
+      $hasRevenue = $this->reportBuilder->goalsHaveRevenue($goals);
+      $enrichedRows = $this->reportBuilder->enrichConversionComparison(
+        $currentRows, $prevRows
+      );
 
-    // Apply search and status filters.
-    $enrichedRows = $this->reportBuilder->filterRows(
-      $enrichedRows, $statusFilter, $querySearch
-    );
+      // Apply search and status filters.
+      $enrichedRows = $this->reportBuilder->filterRows(
+        $enrichedRows, $statusFilter, $querySearch
+      );
 
-    // Paginate.
-    $itemsPerPage = 20;
-    $totalItems = count($enrichedRows);
-    $currentPage = $this->pagerManager
-      ->createPager($totalItems, $itemsPerPage)
-      ->getCurrentPage();
-    $pagedRows = array_slice(
-      $enrichedRows,
-      $currentPage * $itemsPerPage,
-      $itemsPerPage
-    );
+      // Paginate.
+      $itemsPerPage = 20;
+      $totalItems = count($enrichedRows);
+      $currentPage = $this->pagerManager
+        ->createPager($totalItems, $itemsPerPage)
+        ->getCurrentPage();
+      $pagedRows = array_slice(
+        $enrichedRows,
+        $currentPage * $itemsPerPage,
+        $itemsPerPage
+      );
 
-    // Data table.
-    if (empty($pagedRows)) {
-      $build['empty'] = [
-        '#markup' => '<p>' . $this->t('No data found.') . '</p>',
-      ];
+      if (empty($pagedRows)) {
+        $build['empty'] = [
+          '#markup' => '<p>' . $this->t('No conversion data found.') . '</p>',
+        ];
+      }
+      else {
+        $build['table'] = $this->reportBuilder->buildConversionTable(
+          $pagedRows, $hasRevenue, TRUE, $request, $days
+        );
+      }
     }
     else {
-      $build['table'] = $this->reportBuilder->buildDataTable(
-        $pagedRows, $dimension, $request, $days
+      // Fetch and enrich data (existing pageview dimension logic).
+      $currentRows = $this->client->getSitewideDimensionData(
+        $days, $dimension, 100, $countryFilter
       );
+      $prevRows = $this->client->getSitewidePrevDimensionData(
+        $days, $dimension, 100, $countryFilter
+      );
+      $enrichedRows = $this->reportBuilder->enrichWithComparison(
+        $currentRows, $prevRows
+      );
+
+      // Apply search and status filters.
+      $enrichedRows = $this->reportBuilder->filterRows(
+        $enrichedRows, $statusFilter, $querySearch
+      );
+
+      // Paginate.
+      $itemsPerPage = 20;
+      $totalItems = count($enrichedRows);
+      $currentPage = $this->pagerManager
+        ->createPager($totalItems, $itemsPerPage)
+        ->getCurrentPage();
+      $pagedRows = array_slice(
+        $enrichedRows,
+        $currentPage * $itemsPerPage,
+        $itemsPerPage
+      );
+
+      // Data table.
+      if (empty($pagedRows)) {
+        $build['empty'] = [
+          '#markup' => '<p>' . $this->t('No data found.') . '</p>',
+        ];
+      }
+      else {
+        $build['table'] = $this->reportBuilder->buildDataTable(
+          $pagedRows, $dimension, $request, $days
+        );
+      }
     }
 
     // Pager.
@@ -155,7 +232,8 @@ final class ReportController extends ControllerBase {
       '#weight' => 50,
     ];
 
-    // Source link.
+    // Source links.
+    $cleanHost = rtrim((string) $host, '/');
     $build['source'] = [
       '#type' => 'container',
       '#weight' => 100,
@@ -163,12 +241,25 @@ final class ReportController extends ControllerBase {
         '#type' => 'link',
         '#title' => $this->t('Open in PostHog'),
         '#url' => Url::fromUri(
-          rtrim((string) $host, '/') . '/web',
+          $cleanHost . '/web',
           [
             'attributes' => ['target' => '_blank', 'rel' => 'noopener'],
           ]
         ),
         '#attributes' => ['class' => ['button', 'button--small']],
+      ],
+      'replay_link' => [
+        '#type' => 'link',
+        '#title' => $this->t('Watch sessions'),
+        '#url' => Url::fromUri(
+          $cleanHost . '/replay',
+          [
+            'query' => ['filter_test_accounts' => 'false'],
+            'attributes' => ['target' => '_blank', 'rel' => 'noopener'],
+          ]
+        ),
+        '#attributes' => ['class' => ['button', 'button--small']],
+        '#prefix' => ' ',
       ],
     ];
 
