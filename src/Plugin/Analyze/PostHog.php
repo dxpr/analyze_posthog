@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\analyze_posthog\Plugin\Analyze;
 
 use Drupal\analyze\AnalyzePluginBase;
+use Drupal\analyze\BatchableAnalyzerInterface;
 use Drupal\analyze\HelperInterface;
 use Drupal\analyze_posthog\Form\ReportFilterForm;
 use Drupal\analyze_posthog\Service\PostHogClient;
@@ -28,7 +29,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *   description = @Translation("Displays PostHog pageview analytics for entities with URL paths.")
  * )
  */
-final class PostHog extends AnalyzePluginBase {
+final class PostHog extends AnalyzePluginBase implements BatchableAnalyzerInterface {
 
   /**
    * Creates the plugin.
@@ -103,6 +104,27 @@ final class PostHog extends AnalyzePluginBase {
    */
   public function isEnabled(EntityInterface $entity): bool {
     return parent::isEnabled($entity) && $this->client->isConfigured();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function processEntity(EntityInterface $entity, bool $force_refresh = FALSE): bool {
+    if (!$force_refresh && $this->hasResults($entity)) {
+      return FALSE;
+    }
+    // Trigger data fetch and caching by rendering the summary.
+    $this->renderSummary($entity);
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function hasResults(EntityInterface $entity): bool {
+    // PostHog data is fetched on-demand and cached by the PostHog client.
+    // Always return FALSE to allow batch processing to refresh the cache.
+    return FALSE;
   }
 
   /**
