@@ -12,7 +12,7 @@
   <exclude-pattern>*/node_modules/*</exclude-pattern>
   <exclude-pattern>*/vendor/*</exclude-pattern>
   <exclude-pattern>*/.github/*</exclude-pattern>
-
+  <exclude-pattern>CLAUDE.md</exclude-pattern>
   <rule ref="Drupal">
     <!-- Drupal.org packages add info keys automatically -->
     <exclude name="Drupal.InfoFiles.AutoAddedKeys"/>
