@@ -43,8 +43,7 @@ drush en analyze_posthog
 
 ## Related Modules
 
-- [Analyze](https://www.drupal.org/project/analyze)
-- [Analyze Search Console](https://www.drupal.org/project/analyze_search_console)
-- [Reinforcement Learning](https://www.drupal.org/project/rl)
-- [Google Tag](https://www.drupal.org/project/google_tag) - Google Tag Manager integration
-- [Simple Sitemap](https://www.drupal.org/project/simple_sitemap) - XML sitemap generation for Drupal
+- [Analyze](https://www.drupal.org/project/analyze) - Required parent framework that provides the Analyze tab and plugin system this module extends
+- [Key](https://www.drupal.org/project/key) - Required for secure storage of the PostHog API key used by this module
+- [Analyze Search Console](https://www.drupal.org/project/analyze_search_console) - Sibling Analyze plugin that adds Google Search Console data to the same Analyze tab
+- [Analyze Broken Links](https://www.drupal.org/project/analyze_broken_links) - Sibling Analyze plugin for broken link detection in the Analyze tab
