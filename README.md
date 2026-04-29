@@ -12,13 +12,19 @@ entities with URL paths, directly in the Drupal Analyze tab.
 
 ## Features
 
-- **Per-page analytics**: Pageviews, visitors, sessions, and bounce rate displayed per content entity
+- **Per-page analytics**: Pageviews, visitors, sessions, and bounce rate
+  per content entity
 - **Period comparison**: Current vs previous period with change indicators
-- **Dimension breakdowns**: Referrer, country, device, browser, and page dimensions
-- **Sitewide report**: Traffic patterns across your entire site at /admin/reports/posthog
-- **Session replay link**: Jump to PostHog session replay pre-filtered to the current page
-- **Drush commands**: Query analytics, view reports, check status, and clear cache from CLI
-- **Analyze Framework Integration**: Consistent reporting across all analysis tools
+- **Dimension breakdowns**: Referrer, country, device, browser, and page
+  dimensions
+- **Sitewide report**: Traffic patterns across your entire site at
+  /admin/reports/posthog
+- **Session replay link**: Jump to PostHog session replay pre-filtered to
+  the current page
+- **Drush commands**: Query analytics, view reports, check status, and
+  clear cache from CLI
+- **Analyze Framework Integration**: Consistent reporting across all
+  analysis tools
 
 ## Requirements
 
@@ -43,7 +49,13 @@ drush en analyze_posthog
 
 ## Related Modules
 
-- [Analyze](https://www.drupal.org/project/analyze) - Required parent framework that provides the Analyze tab and plugin system this module extends
-- [Key](https://www.drupal.org/project/key) - Required for secure storage of the PostHog API key used by this module
-- [Analyze Search Console](https://www.drupal.org/project/analyze_search_console) - Sibling Analyze plugin that adds Google Search Console data to the same Analyze tab
-- [Analyze Broken Links](https://www.drupal.org/project/analyze_broken_links) - Sibling Analyze plugin for broken link detection in the Analyze tab
+- [Analyze](https://www.drupal.org/project/analyze) - Required parent
+  framework that provides the Analyze tab and plugin system this module
+  extends
+- [Key](https://www.drupal.org/project/key) - Required for secure storage
+  of the PostHog API key used by this module
+- [Analyze Search Console](https://www.drupal.org/project/analyze_search_console)
+  - Sibling Analyze plugin that adds Google Search Console data to the
+  same Analyze tab
+- [Analyze Broken Links](https://www.drupal.org/project/analyze_broken_links)
+  - Sibling Analyze plugin for broken link detection in the Analyze tab
