@@ -313,7 +313,7 @@ final class ReportBuilder {
     }
 
     $pluralLabel = $this->getDimensionPluralLabel($dimension);
-    $caption = $this->t('Top @dimension — @dates', [
+    $caption = $this->t('Top @dimension, @dates', [
       '@dimension' => $pluralLabel,
       '@dates' => $this->buildDateCaption($days),
     ]);
@@ -515,7 +515,7 @@ final class ReportBuilder {
     $dimLabel = $isSitewide
       ? (string) $this->t('pages by conversions')
       : (string) $this->t('conversions by goal');
-    $caption = $this->t('Top @dimension — @dates', [
+    $caption = $this->t('Top @dimension, @dates', [
       '@dimension' => $dimLabel,
       '@dates' => $this->buildDateCaption($days),
     ]);

@@ -1,10 +1,10 @@
-# Analyze PostHog — Conversion Attribution Implementation Plan
+# Analyze PostHog: Conversion Attribution Implementation Plan
 
 ## Context
 
 The pageview analytics portion of this module is fully implemented and working: KPIs (pageviews, visitors, sessions, bounce rate), dimension breakdowns (referrer, country, device, browser, page), comparison periods, sitewide and entity-level reports, Drush commands, filters, and CI. All code passes PHPCS and PHPStan level 5.
 
-This plan covers the **next major feature**: per-content conversion attribution — connecting page visits to business outcomes.
+This plan covers the **next major feature**: per-content conversion attribution, connecting page visits to business outcomes.
 
 ## Why This Matters
 
@@ -22,7 +22,7 @@ The module cannot hardcode event names. Admins must define their own conversion 
 
 ## Architecture
 
-### Conversion Goals — Config-Based, Not Entity-Based
+### Conversion Goals: Config-Based, Not Entity-Based
 
 Goals are stored as a list within `analyze_posthog.settings`, not as separate config entities. Rationale: most sites have 2-5 goals, not hundreds. A list is simpler to manage, export, and doesn't require entity CRUD scaffolding.
 
@@ -86,7 +86,7 @@ analyze_posthog.conversion_goal:
 "A page gets credit for a conversion if the converting session included a pageview of that page."
 
 Why session-based:
-- **Simple to explain**: "23 people who viewed this page also converted" — content editors understand this immediately
+- **Simple to explain**: "23 people who viewed this page also converted"; content editors understand this immediately
 - **Reliable with PostHog data**: `$session_id` is on every event, making session joins straightforward in HogQL
 - **No ordering complexity**: last-touch and first-touch require sequencing pageviews within sessions, adding query complexity for marginal benefit in a content attribution context
 - **Matches industry standard**: Google Analytics 4's default content attribution is also session-scoped
@@ -164,7 +164,7 @@ This rate is meaningful per-page ("5.6% of sessions visiting /pricing result in 
 
 ## Implementation Plan
 
-### Phase 1: Settings Form — Goal Management
+### Phase 1: Settings Form, Goal Management
 
 **File: `src/Form/PostHogSettingsForm.php`**
 
@@ -186,13 +186,13 @@ Conversion Goals
 The event field should be a `select` element populated by the auto-detection query, with a fallback textfield if the API is unreachable. Show event counts in the dropdown options (e.g., "subscription_purchased (68 in last 30 days)") so admins know which events have data.
 
 **Implementation details:**
-- Goals stored as indexed array in config (not keyed by ID — Drupal config sequences use integer keys)
+- Goals stored as indexed array in config (not keyed by ID, since Drupal config sequences use integer keys)
 - Machine name (`id`) auto-generated from label via `Html::cleanCssIdentifier()` or similar
 - Form uses AJAX to add/remove rows without full page reload
 - Validation: event name required, no duplicate event names across goals
 - On save, re-derive `id` from label to keep them in sync
 
-### Phase 2: PostHogClient — Conversion Query Methods
+### Phase 2: PostHogClient, Conversion Query Methods
 
 **File: `src/Service/PostHogClient.php`**
 
@@ -254,7 +254,7 @@ protected function buildConversionQuery(array $goals, string $sessionFilter, str
 
 **Caching:**
 - Cache key: `analyze_posthog:{host_hash}:{path_hash}:conversions:{days}:{goals_hash}`
-- `goals_hash` = `md5(serialize($goals))` — invalidates when goals change
+- `goals_hash` = `md5(serialize($goals))` (invalidates when goals change)
 - Same TTL and tags as existing queries
 
 **Return format for `getPageConversions()`:**
@@ -280,7 +280,7 @@ protected function buildConversionQuery(array $goals, string $sessionFilter, str
 ]
 ```
 
-### Phase 3: ReportBuilder — Conversion Rendering
+### Phase 3: ReportBuilder, Conversion Rendering
 
 **File: `src/Service/ReportBuilder.php`**
 
@@ -319,7 +319,7 @@ This keeps the KPI row compact. The full per-goal breakdown goes in the Conversi
 
 Revenue column hidden if no goals have monetary values configured.
 
-### Phase 4: ReportFilterForm — Conversions Dimension
+### Phase 4: ReportFilterForm, Conversions Dimension
 
 **File: `src/Form/ReportFilterForm.php`**
 
@@ -338,7 +338,7 @@ When `dimension=conversion` is selected:
 - The sitewide report shows pages ranked by conversion count
 - The entity report shows goal breakdown for that page
 
-### Phase 5: ReportController — Sitewide Conversion Report
+### Phase 5: ReportController, Sitewide Conversion Report
 
 **File: `src/Controller/ReportController.php`**
 
@@ -357,20 +357,20 @@ When `dimension=conversion` and goals are configured:
 | /getting-started | 8 | $232 | 11.8% | – | new |
 | /blog/launch | 3 | $87 | 2.1% | ▼ 40.0% | down |
 
-### Phase 6: PostHog Plugin — Entity Conversion Display
+### Phase 6: PostHog Plugin, Entity Conversion Display
 
 **File: `src/Plugin/Analyze/PostHog.php`**
 
-**renderSummary()** — append conversion metrics when goals are configured:
+**renderSummary()**: append conversion metrics when goals are configured:
 ```
 Conversions: 20 (+25.0%)
 Revenue: $580 (+33.2%)
 ```
 
-**renderFullReport()** — when `dimension=conversion`:
+**renderFullReport()**: when `dimension=conversion`:
 Show per-goal breakdown table for this entity.
 
-### Phase 7: Drush Commands — Full Conversion Parity
+### Phase 7: Drush Commands, Full Conversion Parity
 
 **File: `src/Drush/Commands/PostHogCommands.php`**
 
@@ -460,7 +460,7 @@ This is the low-effort, high-impact addition. PostHog records user sessions and 
 **In PostHog plugin `extraSummaryLinks()`**, add:
 
 ```php
-// "Watch sessions" link — deep-link to PostHog session replay filtered by page.
+// "Watch sessions" link: deep-link to PostHog session replay filtered by page.
 $links[] = [
   'title' => $this->t('Watch sessions'),
   'url' => Url::fromUri($host . '/replay', [
@@ -480,17 +480,17 @@ $links[] = [
 ];
 ```
 
-This is a URL-only feature — no API calls, no new service methods. Just a link that opens PostHog's session replay UI pre-filtered to this page. Content editors can watch real users interact with their page directly from the Analyze tab.
+This is a URL-only feature with no API calls and no new service methods. It simply opens PostHog's session replay UI pre-filtered to this page. Content editors can watch real users interact with their page directly from the Analyze tab.
 
 Also add to the sitewide report "Open in PostHog" button area.
 
 ## What NOT to Build
 
-- **Multi-touch attribution** (first/last/linear/time-decay) — over-engineering for a contrib module. Session-based is sufficient and explainable. Power users who need multi-touch should use PostHog's native UI.
-- **Funnel visualization** — PostHog's own UI does this better. Link to it instead of replicating it.
-- **Real-time conversion alerts** — monitoring is a different concern than reporting. Could be a separate module using PostHog webhooks or cron.
-- **Revenue forecasting** — out of scope for an analytics display module.
-- **Goal completion funnels** (multi-step conversion paths) — complex to query, complex to display. The session-based "did this page contribute?" model is the right level of detail for content editors.
+- **Multi-touch attribution** (first/last/linear/time-decay): over-engineering for a contrib module. Session-based is sufficient and explainable. Power users who need multi-touch should use PostHog's native UI.
+- **Funnel visualization**: PostHog's own UI does this better. Link to it instead of replicating it.
+- **Real-time conversion alerts**: monitoring is a different concern than reporting. Could be a separate module using PostHog webhooks or cron.
+- **Revenue forecasting**: out of scope for an analytics display module.
+- **Goal completion funnels** (multi-step conversion paths): complex to query, complex to display. The session-based "did this page contribute?" model is the right level of detail for content editors.
 
 ## File Changes Summary
 
@@ -520,9 +520,9 @@ After implementation, run ALL of the following tests. Both GUI (web) and TUI (Dr
 2. Configure 2 conversion goals at `/admin/config/analyze/posthog`:
    - Goal 1: label "Subscription", event `subscription_purchased`, value_property `amount`, currency `USD`
    - Goal 2: label "Pricing view", event `User Viewed Pricing page`, value `0`, no value_property
-3. Verify the goals list: `drush analyze-ph-goals` — should show both goals with recent event counts
+3. Verify the goals list: `drush analyze-ph-goals` (should show both goals with recent event counts)
 
-### GUI Tests — Sitewide Report
+### GUI Tests: Sitewide Report
 
 Test each at `https://dxpr-10.ddev.site:8443/admin/reports/posthog`:
 
@@ -539,7 +539,7 @@ Test each at `https://dxpr-10.ddev.site:8443/admin/reports/posthog`:
 | G9 | Filter form layout | Any view | Filters render inline (horizontal), matching `/admin/content` pattern. |
 | G10 | No goals configured | Remove all goals, reload | "Conversions" dimension option hidden from dropdown. No errors. |
 
-### GUI Tests — Entity Report
+### GUI Tests: Entity Report
 
 Test at `https://dxpr-10.ddev.site:8443/node/45/analyze/posthog_analytics`:
 
@@ -551,9 +551,9 @@ Test at `https://dxpr-10.ddev.site:8443/node/45/analyze/posthog_analytics`:
 | G14 | Entity summary tab | Navigate to Analyze → Summary | Compact KPI list includes Conversions + Revenue lines (when goals configured). |
 | G15 | Session replay link | Check extra links | "Watch sessions" link present, opens PostHog replay UI filtered to this page's pathname. |
 | G16 | Source link | Check extra links | "View in PostHog" link opens PostHog web analytics. |
-| G17 | No data page | Navigate to entity with no PostHog data | Shows "No analytics data available for this page yet." — no error. |
+| G17 | No data page | Navigate to entity with no PostHog data | Shows "No analytics data available for this page yet." (no error). |
 
-### TUI Tests — Drush Commands
+### TUI Tests: Drush Commands
 
 Run each from the dxpr10b site root via `ddev exec drush ...`:
 
@@ -567,13 +567,13 @@ Run each from the dxpr10b site root via `ddev exec drush ...`:
 | T6 | `analyze-ph-report --dimension=conversion --status=new --limit=5` | Only new conversion sources. |
 | T7 | `analyze-ph-report --dimension=conversion --search=pricing` | Only pages matching "pricing". |
 | T8 | `analyze-ph-report --dimension=conversion --days=365` | Full year, no error. |
-| T9 | `analyze-ph-report --dimension=country --limit=10` | Country dimension, no conversion data — standard pageview table. |
+| T9 | `analyze-ph-report --dimension=country --limit=10` | Country dimension, no conversion data; standard pageview table. |
 | T10 | `analyze-ph-query /pricing --dimension=conversion` | Per-goal breakdown for /pricing. Conversions + Revenue in KPI row. |
 | T11 | `analyze-ph-query /pricing --dimension=conversion --status=up` | Only goals trending up for /pricing. |
-| T12 | `analyze-ph-query /pricing --dimension=referrer --limit=5` | Standard referrer breakdown — conversions NOT shown (different dimension). |
-| T13 | `analyze-ph-query / --days=7 --dimension=device` | Homepage devices, 7 days — regression test for existing functionality. |
+| T12 | `analyze-ph-query /pricing --dimension=referrer --limit=5` | Standard referrer breakdown; conversions NOT shown (different dimension). |
+| T13 | `analyze-ph-query / --days=7 --dimension=device` | Homepage devices, 7 days; regression test for existing functionality. |
 | T14 | `analyze-ph-cc` | Cache cleared successfully. |
-| T15 | `analyze-ph-report --dimension=conversion` (with no goals configured) | Graceful message: "No conversion goals configured." — no error/crash. |
+| T15 | `analyze-ph-report --dimension=conversion` (with no goals configured) | Graceful message: "No conversion goals configured." (no error/crash). |
 
 ### Parity Checks
 
@@ -607,11 +607,11 @@ Both must show `[OK] No errors` or `FOUND 0 ERRORS` before the feature is consid
 
 The pageview analytics code is the reference architecture for how to add the conversion feature. Key patterns already established:
 
-- **SQL builder helpers**: `buildMetricsQuery()`, `buildDimensionQuery()`, `buildTimeFilter()`, `buildPathFilter()`, `buildCountryFilter()`, `buildSitewideBounceQuery()` — extend this pattern for conversion queries
-- **Shared filter method**: `ReportBuilder::filterRows()` — reuse for conversion data filtering
-- **Enrichment**: `ReportBuilder::enrichWithComparison()` — adapt for conversion rows (status based on conversion count change instead of pageview change)
-- **KPI rendering**: `ReportBuilder::buildKpiTable()` / `formatKpiCell()` — extend to include conversion columns
-- **Dimension routing**: Controller/plugin already switch on `$dimension` — add `'conversion'` case
-- **Drush parity**: Every UI surface has a Drush equivalent — maintain this for conversions
+- **SQL builder helpers**: `buildMetricsQuery()`, `buildDimensionQuery()`, `buildTimeFilter()`, `buildPathFilter()`, `buildCountryFilter()`, `buildSitewideBounceQuery()`: extend this pattern for conversion queries
+- **Shared filter method**: `ReportBuilder::filterRows()`: reuse for conversion data filtering
+- **Enrichment**: `ReportBuilder::enrichWithComparison()`: adapt for conversion rows (status based on conversion count change instead of pageview change)
+- **KPI rendering**: `ReportBuilder::buildKpiTable()` / `formatKpiCell()`: extend to include conversion columns
+- **Dimension routing**: Controller/plugin already switch on `$dimension`; add `'conversion'` case
+- **Drush parity**: Every UI surface has a Drush equivalent; maintain this for conversions
 - **Key module**: API key stored via `key:key` dependency, resolved via `KeyRepositoryInterface`
 - **CSS**: `views-exposed-form` inline layout, `gin-new-flag`/`gin-experimental-flag` badges, `ph-change--up`/`ph-change--down` indicators
