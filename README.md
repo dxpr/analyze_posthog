@@ -1,6 +1,9 @@
-> Part of [DXPR CMS](https://dxpr.com/c/marketing-cms): The AI-Powered Drupal CMS
+> **Analyze PostHog** is a Drupal module by [DXPR](https://dxpr.com) that
+> connects PostHog product analytics data to Drupal's content analysis workflow, surfacing page-level engagement metrics alongside editorial tools. An [Analyze](https://www.drupal.org/project/analyze) plugin by [DXPR](https://dxpr.com).
 >
-> [Documentation](https://dxpr.com/docs) | [Try Free](https://dxpr.com/try) | [dxpr.com](https://dxpr.com)
+> [Getting Started](https://dxpr.com/c/getting-started) |
+> [Pricing](https://dxpr.com/pricing) |
+> [Try Free Demo](https://dxpr.com/try)
 
 # Analyze PostHog: PostHog Analytics Integration for Drupal Content
 
@@ -38,8 +41,10 @@ drush en analyze_posthog
 3. Configure PostHog host and project ID at `/admin/config/analyze/posthog`
 4. Enable per content type at `/admin/config/content/analyze-settings`
 
-## Related DXPR Modules
+## Related Modules
 
 - [Analyze](https://www.drupal.org/project/analyze)
 - [Analyze Search Console](https://www.drupal.org/project/analyze_search_console)
 - [Reinforcement Learning](https://www.drupal.org/project/rl)
+- [Google Tag](https://www.drupal.org/project/google_tag) - Google Tag Manager integration
+- [Simple Sitemap](https://www.drupal.org/project/simple_sitemap) - XML sitemap generation for Drupal
