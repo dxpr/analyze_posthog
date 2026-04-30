@@ -1,9 +1,9 @@
 > **Analyze PostHog** is a Drupal module by [DXPR](https://dxpr.com) that
 > connects PostHog product analytics data to Drupal's content analysis workflow, surfacing page-level engagement metrics alongside editorial tools. An [Analyze](https://www.drupal.org/project/analyze) plugin by [DXPR](https://dxpr.com).
 >
-> [Getting Started](https://dxpr.com/c/getting-started) |
+> [Getting Started](https://dxpr.com/c/marketing-cms) |
 > [Pricing](https://dxpr.com/pricing) |
-> [Try Free Demo](https://dxpr.com/try)
+> [Try Free Demo](https://try.dxpr.com)
 
 # Analyze PostHog: PostHog Analytics Integration for Drupal Content
 
