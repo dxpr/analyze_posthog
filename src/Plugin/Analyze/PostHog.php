@@ -495,7 +495,7 @@ final class PostHog extends AnalyzePluginBase {
       '#table_title' => 'PostHog Analytics',
       '#rows' => [
         [
-          'label' => $this->t('Status'),
+          'label' => 'Status',
           'data' => $message,
         ],
       ],
