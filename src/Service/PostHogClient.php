@@ -1250,7 +1250,7 @@ class PostHogClient {
   protected function buildRevenueExpression(array $goals, string $alias = ''): string {
     $prefix = $alias !== '' ? $alias . '.' : '';
 
-    // Build CASE expression handling both fixed values and property-based values.
+    // Build CASE expression handling both fixed and property values.
     $cases = [];
     foreach ($goals as $goal) {
       $event = $this->escapeHogql($goal['event']);
