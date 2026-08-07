@@ -116,7 +116,7 @@ class PostHogClient {
    */
   public function getEntityUrl(EntityInterface $entity): ?string {
     try {
-      $internalPath = $entity->toUrl()->toString();
+      $internalPath = '/' . $entity->toUrl()->getInternalPath();
       return $this->aliasManager->getAliasByPath($internalPath);
     }
     catch (\Exception $e) {
@@ -859,7 +859,7 @@ class PostHogClient {
       $curTime = $current['avg_time'] ?? 0;
       $prevTime = $previous['avg_time'] ?? 0;
       $timeDiff = $curTime - $prevTime;
-      $sign = $timeDiff >= 0 ? '+' : '';
+      $sign = $timeDiff >= 0 ? '+' : '-';
       $change['avg_time'] = [
         'value' => $timeDiff,
         'formatted' => $sign . $this->formatDuration($timeDiff),
@@ -1421,7 +1421,7 @@ class PostHogClient {
    *   The escaped value.
    */
   protected function escapeHogql(string $value): string {
-    return str_replace("'", "\\'", $value);
+    return str_replace(['\\', "'"], ['\\\\', "\\'"], $value);
   }
 
   /**
