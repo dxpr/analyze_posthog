@@ -190,7 +190,7 @@ final class ReportFilterForm extends FormBase {
       '#type' => 'submit',
       '#value' => $this->t('Filter'),
     ];
-    // Reset link -- matches core admin/content "Reset" button.
+    // Reset link: matches core admin/content "Reset" button.
     $resetUrl = $action_url !== '' ? $action_url : Url::fromRoute('analyze_posthog.report')->toString();
     $form['actions']['reset'] = [
       '#type' => 'link',
