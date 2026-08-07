@@ -9,7 +9,6 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\key\KeyRepositoryInterface;
-use Drupal\path_alias\AliasManagerInterface;
 use GuzzleHttp\ClientInterface;
 use Psr\Log\LoggerInterface;
 
@@ -41,8 +40,6 @@ class PostHogClient {
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
    *   The config factory.
-   * @param \Drupal\path_alias\AliasManagerInterface $aliasManager
-   *   The path alias manager.
    * @param \Drupal\Core\Cache\CacheBackendInterface $cache
    *   The cache backend.
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
@@ -54,7 +51,6 @@ class PostHogClient {
    */
   public function __construct(
     protected readonly ConfigFactoryInterface $configFactory,
-    protected readonly AliasManagerInterface $aliasManager,
     protected readonly CacheBackendInterface $cache,
     LoggerChannelFactoryInterface $loggerFactory,
     protected readonly ClientInterface $httpClient,
@@ -116,8 +112,7 @@ class PostHogClient {
    */
   public function getEntityUrl(EntityInterface $entity): ?string {
     try {
-      $internalPath = '/' . $entity->toUrl()->getInternalPath();
-      return $this->aliasManager->getAliasByPath($internalPath);
+      return $entity->toUrl()->toString();
     }
     catch (\Exception $e) {
       return NULL;
@@ -1421,7 +1416,7 @@ class PostHogClient {
    *   The escaped value.
    */
   protected function escapeHogql(string $value): string {
-    return str_replace(['\\', "'"], ['\\\\', "\\'"], $value);
+    return addcslashes($value, "'\\");
   }
 
   /**

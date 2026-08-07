@@ -3,7 +3,6 @@ services:
     class: Drupal\analyze_posthog\Service\PostHogClient
     arguments:
       - '@config.factory'
-      - '@path_alias.manager'
       - '@cache.default'
       - '@logger.factory'
       - '@http_client'
