@@ -241,7 +241,7 @@ final class PostHog extends AnalyzePluginBase {
       '#attributes' => ['class' => ['analyze-posthog-report']],
     ];
 
-    // Filter form -- same Drupal form as sitewide report, with entity action
+    // Filter form: same Drupal form as sitewide report, with entity action
     // URL.
     $entityType = $entity->getEntityTypeId();
     $routeName = 'analyze.' . $entityType . '.' . $this->getPluginId();
@@ -254,7 +254,7 @@ final class PostHog extends AnalyzePluginBase {
     );
     $build['filters']['#weight'] = -10;
 
-    // KPI summary -- below filters, responds to selected period.
+    // KPI summary: below filters, responds to selected period.
     $metricsData = $this->client->getPageMetricsWithComparison($pathname, $days);
     if ($metricsData && $metricsData['current']) {
       // When goals are configured, add conversion KPI columns.
@@ -370,7 +370,7 @@ final class PostHog extends AnalyzePluginBase {
         $itemsPerPage
       );
 
-      // Data table -- same builder as sitewide report.
+      // Data table: same builder as sitewide report.
       if (empty($pagedRows)) {
         $build['empty'] = [
           '#markup' => '<p>' . $this->t('No analytics data available for this page.') . '</p>',
@@ -445,7 +445,7 @@ final class PostHog extends AnalyzePluginBase {
         ]),
       ];
 
-      // "Watch sessions" link -- deep-link to PostHog session replay.
+      // "Watch sessions" link: deep-link to PostHog session replay.
       $pathname = $this->client->getEntityUrl($entity);
       if ($pathname !== NULL) {
         $replayFilter = json_encode([
@@ -492,10 +492,10 @@ final class PostHog extends AnalyzePluginBase {
 
     return [
       '#theme' => 'analyze_table',
-      '#table_title' => $this->t('PostHog Analytics'),
+      '#table_title' => 'PostHog Analytics',
       '#rows' => [
         [
-          'label' => $this->t('Status'),
+          'label' => 'Status',
           'data' => $message,
         ],
       ],

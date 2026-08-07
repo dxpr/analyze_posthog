@@ -88,7 +88,7 @@ final class ReportController extends ControllerBase {
 
     $build = [];
 
-    // Property header -- show clean host.
+    // Property header: show clean host.
     $displayHost = (string) $host;
     $displayHost = preg_replace('#^https?://#', '', $displayHost);
     $build['header'] = [
@@ -103,7 +103,7 @@ final class ReportController extends ControllerBase {
     $build['filters'] = $this->formBuilder()->getForm(ReportFilterForm::class);
     $build['filters']['#weight'] = -10;
 
-    // KPI summary cards -- below filters, responds to all selected filters.
+    // KPI summary cards: below filters, responds to all selected filters.
     $metricsData = $this->client->getSitewideMetricsWithComparison(
       $days,
       $countryFilter

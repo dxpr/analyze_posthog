@@ -85,7 +85,7 @@ final class PostHogCommands extends DrushCommands {
    *   Command options.
    */
   #[CLI\Command(name: 'analyze:posthog:query', aliases: ['analyze-ph-query'])]
-  #[CLI\Help(description: 'Fetch PostHog analytics data for a URL -- matches the entity Analyze tab.')]
+  #[CLI\Help(description: 'Fetch PostHog analytics data for a URL; matches the entity Analyze tab.')]
   #[CLI\Argument(name: 'url', description: 'A path like /pricing.')]
   #[CLI\Option(name: 'days', description: 'Date range in days (7, 14, 28, 90, 180, 365).')]
   #[CLI\Option(name: 'dimension', description: 'Primary dimension: referrer, country, device, browser, conversion.')]
@@ -127,7 +127,7 @@ final class PostHogCommands extends DrushCommands {
     $this->io()->writeln('Period: ' . $this->reportBuilder->buildDateCaption($days));
     $this->io()->writeln('');
 
-    // KPI summary -- always show comparison (matches entity UI).
+    // KPI summary: always show comparison (matches entity UI).
     $data = $this->client->getPageMetricsWithComparison($pathname, $days);
     if ($data === NULL || $data['current'] === NULL) {
       $this->logger()->warning('No data available for this path.');
@@ -206,7 +206,7 @@ final class PostHogCommands extends DrushCommands {
    *   Command options.
    */
   #[CLI\Command(name: 'analyze:posthog:report', aliases: ['analyze-ph-report'])]
-  #[CLI\Help(description: 'Sitewide PostHog analytics report -- matches the admin report page.')]
+  #[CLI\Help(description: 'Sitewide PostHog analytics report; matches the admin report page.')]
   #[CLI\Option(name: 'days', description: 'Date range in days (7, 14, 28, 90, 180, 365).')]
   #[CLI\Option(name: 'dimension', description: 'Primary dimension: referrer, country, device, browser, page, conversion.')]
   #[CLI\Option(name: 'country', description: 'Filter by country name (e.g., "United States").')]
@@ -250,7 +250,7 @@ final class PostHogCommands extends DrushCommands {
     }
     $this->io()->writeln('');
 
-    // KPI summary -- passes country filter (matches sitewide UI).
+    // KPI summary: passes country filter (matches sitewide UI).
     $summary = $this->client->getSitewideMetricsWithComparison(
       $days, $country
     );

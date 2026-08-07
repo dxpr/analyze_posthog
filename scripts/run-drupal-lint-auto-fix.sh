@@ -4,10 +4,10 @@ source scripts/prepare-drupal-lint.sh
 
 phpcbf --standard=Drupal \
   --extensions=php,module,inc,install,test,profile,theme,info,txt,md,yml \
-  --ignore=node_modules,analyze_posthog/vendor,.github,vendor \
+  --ignore=node_modules,analyze_posthog/vendor,.github,vendor,CLAUDE.md \
   .
 
 phpcbf --standard=DrupalPractice \
   --extensions=php,module,inc,install,test,profile,theme,info,txt,md,yml \
-  --ignore=node_modules,analyze_posthog/vendor,.github,vendor \
+  --ignore=node_modules,analyze_posthog/vendor,.github,vendor,CLAUDE.md \
   .
