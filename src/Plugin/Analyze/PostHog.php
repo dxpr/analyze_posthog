@@ -139,62 +139,22 @@ final class PostHog extends AnalyzePluginBase {
 
     $pageviews = number_format((int) $current['pageviews']);
     $visitors = number_format((int) $current['visitors']);
-    $sessions = number_format((int) $current['sessions']);
     $bounceRate = number_format($current['bounce_rate'], 1) . '%';
-    $avgTime = $this->client->formatDuration($current['avg_time']);
 
     if ($change) {
       $pageviews .= ' (' . $change['pageviews']['formatted'] . ')';
       $visitors .= ' (' . $change['visitors']['formatted'] . ')';
-      $sessions .= ' (' . $change['sessions']['formatted'] . ')';
       $bounceRate .= ' (' . $change['bounce_rate']['formatted'] . ')';
-      if (isset($change['avg_time'])) {
-        $avgTime .= ' (' . $change['avg_time']['formatted'] . ')';
-      }
-    }
-
-    $rows = [
-      ['label' => 'Pageviews', 'data' => $pageviews],
-      ['label' => 'Unique visitors', 'data' => $visitors],
-      ['label' => 'Sessions', 'data' => $sessions],
-      ['label' => 'Bounce rate', 'data' => $bounceRate],
-      ['label' => 'Avg time on page', 'data' => $avgTime],
-    ];
-
-    // Append conversion metrics when goals are configured.
-    $goals = $config->get('conversion_goals') ?: [];
-    if (!empty($goals)) {
-      $convData = $this->client->getPageConversionsWithComparison(
-        $pathname, $days, $goals
-      );
-      if ($convData !== NULL) {
-        $curConv = $convData['current'];
-        $prevConv = $convData['previous'];
-        $convStr = number_format((int) $curConv['total_conversions']);
-        if ($prevConv && $prevConv['total_conversions'] > 0) {
-          $pct = (($curConv['total_conversions'] - $prevConv['total_conversions']) / $prevConv['total_conversions']) * 100;
-          $sign = $pct >= 0 ? '+' : '';
-          $convStr .= ' (' . $sign . number_format($pct, 1) . '%)';
-        }
-        $rows[] = ['label' => 'Conversions', 'data' => $convStr];
-
-        $hasRevenue = $this->reportBuilder->goalsHaveRevenue($goals);
-        if ($hasRevenue) {
-          $revStr = '$' . number_format((float) $curConv['total_revenue'], 2);
-          if ($prevConv && $prevConv['total_revenue'] > 0) {
-            $pct = (($curConv['total_revenue'] - $prevConv['total_revenue']) / $prevConv['total_revenue']) * 100;
-            $sign = $pct >= 0 ? '+' : '';
-            $revStr .= ' (' . $sign . number_format($pct, 1) . '%)';
-          }
-          $rows[] = ['label' => 'Conv. value', 'data' => $revStr];
-        }
-      }
     }
 
     return [
       '#theme' => 'analyze_table',
       '#table_title' => 'PostHog Analytics (Last ' . $days . ' Days)',
-      '#rows' => $rows,
+      '#rows' => [
+        ['label' => 'Pageviews', 'data' => $pageviews],
+        ['label' => 'Unique visitors', 'data' => $visitors],
+        ['label' => 'Bounce rate', 'data' => $bounceRate],
+      ],
     ];
   }
 
