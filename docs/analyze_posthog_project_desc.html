@@ -2,25 +2,24 @@
 
 <h2>Your Analytics Data Belongs Next to Your Content, Not in Another Tab</h2>
 
-<blockquote>You're editing a page. How many visitors did it get this month? Is traffic growing or declining? Which countries and devices are your audience using? Right now you'd switch to PostHog, find the URL, set the date range, and read a dashboard. With this module, that data is right there on the Analyze tab: every entity, every metric, zero context switching.</blockquote>
+<blockquote>You're editing a page. How many visitors did it get this month? Is traffic growing or declining? Right now you'd switch to PostHog, find the URL, and read a dashboard. With this module, that data lives on the Analyze tab: every entity, every metric, zero context switching.</blockquote>
+
+<p><img src="https://www.drupal.org/files/posthog_overview.jpg" alt="PostHog Analytics full report showing pageviews, visitors, sessions, and bounce rate with period-over-period comparison" /></p>
 
 <h3>You need Analyze PostHog if</h3>
 <ul>
-  <li>You use PostHog for product analytics (cloud or self-hosted) and want to see traffic data per page inside Drupal</li>
+  <li>You use PostHog for product analytics (cloud or self-hosted) and want traffic data per page inside Drupal</li>
   <li>Your content team needs pageview, visitor, and session counts without leaving the CMS</li>
-  <li>You want to compare this period to the previous one and spot trends at a glance, not just static numbers</li>
+  <li>You want period-over-period comparison to spot trends at a glance</li>
   <li>You need to break down traffic by referrer, country, device, or browser for targeted content decisions</li>
-  <li>You are building a <a href="https://dxpr.com/c/marketing-cms?ref=50701">marketing CMS</a> and need analytics data integrated directly into the editorial workflow</li>
+  <li>You are building a <a href="https://dxpr.com/c/marketing-cms?ref=50701">marketing CMS</a> and need analytics integrated directly into the editorial workflow</li>
 </ul>
-
-<h2>How It Works</h2>
-<p>Install the module, store your PostHog API key using the Key module, enter your PostHog host and project ID in the settings, and you're connected. Every content entity with a URL path gets analytics data in its Analyze tab, pulled live from PostHog's HogQL API. A sitewide report surfaces traffic patterns across your entire site.</p>
 
 <h2>What You Get</h2>
 <ul>
   <li>
     <strong>Pageviews, visitors, sessions, and bounce rate per page</strong>
-    <p>Every content entity shows its PostHog performance in the Analyze tab, with change vs the previous period (e.g., "397 pageviews (+12.3%)") so you see trends, not just numbers.</p>
+    <p>Every content entity shows its PostHog performance in the Analyze tab, with change vs the previous period (e.g., "113 pageviews, up 17.7%") so you see trends, not just numbers.</p>
   </li>
   <li>
     <strong>Dimension breakdowns</strong>
@@ -30,28 +29,28 @@
       <li><strong>Country</strong>: geographic distribution of your audience</li>
       <li><strong>Device</strong>: desktop vs mobile vs tablet breakdown</li>
       <li><strong>Browser</strong>: Chrome, Firefox, Safari, and others</li>
-      <li><strong>Page</strong>: top pages across your site (sitewide report)</li>
     </ul>
   </li>
+</ul>
+
+<p><img src="https://www.drupal.org/files/posthog_referrers.jpg" alt="Top referrers table showing traffic sources with pageview counts, visitor counts, and period-over-period change indicators" /></p>
+
+<ul>
   <li>
-    <strong>Sitewide and entity-level reports</strong>
-    <p>The sitewide report at /admin/reports/posthog shows KPIs and dimension tables for your entire site. Entity reports show the same data scoped to a single page. Both include previous period comparison.</p>
-  </li>
-  <li>
-    <strong>Filters for focused analysis</strong>
-    <p>Filter reports by country, status (new, up, down, lost), and text search to zero in on the data that matters. Filters work on both sitewide and entity reports.</p>
-  </li>
-  <li>
-    <strong>Session replay link</strong>
-    <p>Jump directly from the Analyze tab to PostHog's session replay, pre-filtered to the current page, and watch real users interact with your content.</p>
+    <strong>Flexible filters and date ranges</strong>
+    <p>Switch between 7, 14, 28, or 90 day windows. Filter by status (new, up, down, lost), country, and text search to zero in on the data that matters.</p>
   </li>
   <li>
     <strong>Conversion attribution</strong>
     <p>Connect page visits to business outcomes. Define conversion goals (signups, purchases, form submissions) and see which pages drive the most conversions, with revenue tracking and period-over-period comparison.</p>
   </li>
   <li>
+    <strong>Session replay link</strong>
+    <p>Jump directly from the Analyze tab to PostHog's session replay, pre-filtered to the current page, and watch real users interact with your content.</p>
+  </li>
+  <li>
     <strong>Drush commands</strong>
-    <p>Query analytics for any URL, view sitewide reports, check connection status, and clear the cache from the command line. Useful for scripted reporting, CI pipelines, and DevOps workflows.</p>
+    <p>Query analytics for any URL, view sitewide reports, check connection status, and clear the cache from the command line.</p>
   </li>
 </ul>
 
@@ -60,7 +59,7 @@
   <li>Install with Composer: <code>composer require drupal/analyze_posthog</code></li>
   <li>Enable the module and the <a href="https://www.drupal.org/project/key">Key</a> module</li>
   <li>Create a <a href="https://posthog.com/docs/api">PostHog personal API key</a> with read access</li>
-  <li>Store the API key at /admin/config/system/keys (Key module) and configure your PostHog host and project ID at /admin/config/analyze/posthog</li>
+  <li>Store the API key at /admin/config/system/keys and configure your PostHog host and project ID at /admin/config/analyze/posthog</li>
   <li>Enable the analyzer per content type at /admin/config/content/analyze-settings</li>
 </ol>
 
@@ -87,3 +86,5 @@
 <li><a href="https://www.drupal.org/project/analyze_search_console">Analyze Search Console</a> - Sibling Analyze plugin that adds Google Search Console data to the same Analyze tab</li>
 <li><a href="https://www.drupal.org/project/analyze_broken_links">Analyze Broken Links</a> - Sibling Analyze plugin for broken link detection in the Analyze tab</li>
 </ul>
+
+<p>Analyze PostHog is part of the Analyze suite included in <a href="https://dxpr.com/c/marketing-cms?ref=50701">DXPR CMS</a>, a turnkey <a href="https://dxpr.com/c/marketing-cms?ref=50701">marketing CMS</a> for Drupal that combines content analysis, a <a href="https://dxpr.com/c/premium-drupal-theme?ref=50701">premium Drupal theme</a>, and a <a href="https://dxpr.com/c/drupal-layout-builder?ref=50701">drag-and-drop layout builder</a>. See <a href="https://dxpr.com/c/marketing-cms?ref=50701">getting started</a> or explore <a href="https://dxpr.com/pricing?ref=50701">pricing</a>.</p>
