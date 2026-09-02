@@ -63,6 +63,8 @@
   <li>Enable the analyzer per content type at /admin/config/content/analyze-settings</li>
 </ol>
 
+<p><a href="/files/analyze-posthog-config.jpg"><img src="/files/analyze-posthog-config.jpg" alt="Analyze PostHog configuration page showing setup instructions, PostHog host URL, Project ID, API key selection, date range, and cache settings" /></a></p>
+
 <div class="note-tip">
   <h4>Prefer a turnkey demo site?</h4>
   <p>Spin up <strong>DXPR CMS</strong>: Drupal pre-configured with DXPR Builder, DXPR Theme, the full Analyze suite including PostHog integration, and security best practices out of the box.</p>
@@ -78,6 +80,25 @@
     <li>A <a href="https://posthog.com/">PostHog</a> account (cloud or self-hosted) with a personal API key</li>
   </ul>
 </p>
+
+<h2>FAQ</h2>
+
+<dl>
+  <dt>Does Analyze PostHog work with self-hosted PostHog?</dt>
+  <dd>
+    <p>Yes. The module connects to any PostHog instance, cloud or self-hosted. Configure your PostHog host URL and project ID at the module's settings page. Self-hosted installations get the same per-page analytics, dimension breakdowns, and conversion tracking as PostHog Cloud users.</p>
+  </dd>
+
+  <dt>What analytics data appears in the Analyze tab?</dt>
+  <dd>
+    <p>Each content entity shows pageviews, unique visitors, sessions, and bounce rate with period-over-period comparison (for example, "113 pageviews, up 17.7%"). The full report adds dimension breakdowns by referrer, country, device, and browser, plus conversion attribution when goals are configured.</p>
+  </dd>
+
+  <dt>Does it cache PostHog data locally?</dt>
+  <dd>
+    <p>Yes. Analytics data is cached in Drupal to avoid hitting the PostHog API on every page view. Cache lifetime is configurable and can be cleared via Drush. This keeps the Analyze tab responsive and reduces API usage, especially on sites with high editorial traffic.</p>
+  </dd>
+</dl>
 
 <h3>Related Modules</h3>
 <ul>
