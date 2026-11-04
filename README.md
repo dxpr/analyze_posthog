@@ -1,5 +1,8 @@
 > **Analyze PostHog** is a Drupal module by [DXPR](https://dxpr.com) that
-> connects PostHog product analytics data to Drupal's content analysis workflow, surfacing page-level engagement metrics alongside editorial tools. An [Analyze](https://www.drupal.org/project/analyze) plugin by [DXPR](https://dxpr.com).
+> connects PostHog product analytics data to Drupal's content analysis
+> workflow, surfacing page-level engagement metrics alongside editorial
+> tools. An [Analyze](https://www.drupal.org/project/analyze) plugin by
+> [DXPR](https://dxpr.com).
 >
 > [Getting Started](https://dxpr.com/c/marketing-cms) |
 > [Pricing](https://dxpr.com/pricing) |
@@ -30,7 +33,8 @@ entities with URL paths, directly in the Drupal Analyze tab.
 
 - [Analyze](https://www.drupal.org/project/analyze) framework (>=1.1.0)
 - [Key](https://www.drupal.org/project/key) module for secure API key storage
-- A [PostHog](https://posthog.com/) account (cloud or self-hosted) with a personal API key
+- A [PostHog](https://posthog.com/) account (cloud or self-hosted) with a
+  personal API key
 
 ## Installation
 
@@ -42,7 +46,8 @@ drush en analyze_posthog
 ## Configuration
 
 ### Basic Setup
-1. Create a [PostHog personal API key](https://posthog.com/docs/api) with read access
+1. Create a [PostHog personal API key](https://posthog.com/docs/api) with
+   read access
 2. Store the API key at `/admin/config/system/keys` (Key module)
 3. Configure PostHog host and project ID at `/admin/config/analyze/posthog`
 4. Enable per content type at `/admin/config/content/analyze-settings`
@@ -54,7 +59,8 @@ drush en analyze_posthog
   extends
 - [Key](https://www.drupal.org/project/key) - Required for secure storage
   of the PostHog API key used by this module
-- [Analyze Search Console](https://www.drupal.org/project/analyze_search_console)
+- [Analyze Search
+  Console](https://www.drupal.org/project/analyze_search_console)
   - Sibling Analyze plugin that adds Google Search Console data to the
   same Analyze tab
 - [Analyze Broken Links](https://www.drupal.org/project/analyze_broken_links)
