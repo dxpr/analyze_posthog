@@ -40,7 +40,7 @@ final class ReportBuilder {
       $this->t('Bounce rate'),
     ];
 
-    $rows = [[
+    $kpiRow = [
       $this->formatKpiCell(
         number_format((int) $current['pageviews']),
         $change ? $change['pageviews'] : NULL,
@@ -62,7 +62,8 @@ final class ReportBuilder {
         $change ? $change['bounce_rate'] : NULL,
         FALSE
       ),
-    ]];
+    ];
+    $rows = [$kpiRow];
 
     $table = [
       '#theme' => 'table',
