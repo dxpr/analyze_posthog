@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 if [ -z "$TARGET_DRUPAL_CORE_VERSION" ]; then
   TARGET_DRUPAL_CORE_VERSION=10
@@ -30,6 +29,6 @@ composer global show -P
 phpcs -i
 
 phpcs --config-set colors 1
-phpcs --config-set drupal_core_version 11$TARGET_DRUPAL_CORE_VERSION
+phpcs --config-set drupal_core_version 11
 
 phpcs --config-show
