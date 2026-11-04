@@ -23,7 +23,7 @@ final class PostHogSettingsForm extends ConfigFormBase {
    *   The PostHog client.
    */
   public function __construct(
-    protected readonly PostHogClient $client,
+    protected PostHogClient $client,
   ) {
   }
 
@@ -340,8 +340,8 @@ final class PostHogSettingsForm extends ConfigFormBase {
     }
     $seenEvents = [];
     foreach ($goals as $i => $goal) {
-      $label = trim($goal['label'] ?? '');
-      $event = trim($goal['event'] ?? '');
+      $label = trim($goal['label'] ?? '', " \n\r\t\v\x00");
+      $event = trim($goal['event'] ?? '', " \n\r\t\v\x00");
       // Skip completely empty rows.
       if ($label === '' && $event === '') {
         continue;
@@ -388,8 +388,8 @@ final class PostHogSettingsForm extends ConfigFormBase {
     }
     $processedGoals = [];
     foreach ($rawGoals as $goal) {
-      $label = trim($goal['label'] ?? '');
-      $event = trim($goal['event'] ?? '');
+      $label = trim($goal['label'] ?? '', " \n\r\t\v\x00");
+      $event = trim($goal['event'] ?? '', " \n\r\t\v\x00");
       if ($label === '' || $event === '') {
         continue;
       }
@@ -399,8 +399,8 @@ final class PostHogSettingsForm extends ConfigFormBase {
         'label' => $label,
         'event' => $event,
         'value' => (float) ($goal['value'] ?? 0),
-        'value_property' => trim($goal['value_property'] ?? ''),
-        'currency' => strtoupper(trim($goal['currency'] ?? 'USD')) ?: 'USD',
+        'value_property' => trim($goal['value_property'] ?? '', " \n\r\t\v\x00"),
+        'currency' => strtoupper(trim($goal['currency'] ?? 'USD', " \n\r\t\v\x00")) ?: 'USD',
       ];
     }
 

@@ -28,7 +28,7 @@ final class ReportFilterForm extends FormBase {
    *   The PostHog client.
    */
   public function __construct(
-    protected readonly PostHogClient $client,
+    protected PostHogClient $client,
   ) {
   }
 
