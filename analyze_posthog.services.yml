@@ -10,3 +10,7 @@ services:
 
   analyze_posthog.report_builder:
     class: Drupal\analyze_posthog\Service\ReportBuilder
+
+  Drupal\analyze_posthog\Hook\AnalyzePosthogHooks:
+    class: Drupal\analyze_posthog\Hook\AnalyzePosthogHooks
+    autowire: true
