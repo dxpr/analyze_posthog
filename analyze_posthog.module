@@ -2,15 +2,21 @@
 
 /**
  * @file
+ * Module hooks for Analyze PostHog.
+ */
+
+use Drupal\Core\Hook\Attribute\LegacyHook;
+use Drupal\analyze_posthog\Hook\AnalyzePosthogHooks;
+
+/**
+ * @file
  * Provides PostHog analytics integration for the Analyze module.
  */
 
 /**
  * Implements hook_help().
  */
+#[LegacyHook]
 function analyze_posthog_help($route_name, $route_match) {
-  switch ($route_name) {
-    case 'help.page.analyze_posthog':
-      return '<p>' . t('The Analyze PostHog module displays PostHog analytics data (pageviews, unique visitors, sessions, bounce rate) for entities with URL paths in the Analyze tab.') . '</p>';
-  }
+  return \Drupal::service(AnalyzePosthogHooks::class)->help($route_name, $route_match);
 }
