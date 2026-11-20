@@ -23,7 +23,7 @@ final class PostHogSettingsForm extends ConfigFormBase {
    *   The PostHog client.
    */
   public function __construct(
-    protected readonly PostHogClient $client,
+    protected PostHogClient $client,
   ) {
   }
 
@@ -95,23 +95,23 @@ final class PostHogSettingsForm extends ConfigFormBase {
 
     $form['setup_instructions']['steps'] = [
       '#markup' =>
-        '<ol>' .
-          '<li>' .
-          $this->t('<strong>Log in to your PostHog instance</strong> at <code>https://us.posthog.com</code> (US Cloud), <code>https://eu.posthog.com</code> (EU Cloud), or your self-hosted URL.') .
-          '</li>' .
-          '<li>' .
-          $this->t('<strong>Create a Personal API key.</strong> Go to <em>Settings &rarr; Personal API Keys</em> and click <em>Create personal API key</em>. Give it a descriptive label (e.g., "Drupal Analyze") and ensure it has read access to your project.') .
-          '</li>' .
-          '<li>' .
-          $this->t('<strong>Find your Project ID.</strong> Go to <em>Settings &rarr; Project</em>. The Project ID is displayed in the settings (usually a number).') .
-          '</li>' .
-          '<li>' .
-          $this->t('<strong>Copy the host URL</strong> from your browser address bar (e.g., <code>https://us.posthog.com</code>).') .
-          '</li>' .
-          '<li>' .
-          $this->t('<strong>Paste all three values below</strong> and click <em>Save configuration</em>.') .
-          '</li>' .
-          '</ol>',
+      '<ol>' .
+      '<li>' .
+      $this->t('<strong>Log in to your PostHog instance</strong> at <code>https://us.posthog.com</code> (US Cloud), <code>https://eu.posthog.com</code> (EU Cloud), or your self-hosted URL.') .
+      '</li>' .
+      '<li>' .
+      $this->t('<strong>Create a Personal API key.</strong> Go to <em>Settings &rarr; Personal API Keys</em> and click <em>Create personal API key</em>. Give it a descriptive label (e.g., "Drupal Analyze") and ensure it has read access to your project.') .
+      '</li>' .
+      '<li>' .
+      $this->t('<strong>Find your Project ID.</strong> Go to <em>Settings &rarr; Project</em>. The Project ID is displayed in the settings (usually a number).') .
+      '</li>' .
+      '<li>' .
+      $this->t('<strong>Copy the host URL</strong> from your browser address bar (e.g., <code>https://us.posthog.com</code>).') .
+      '</li>' .
+      '<li>' .
+      $this->t('<strong>Paste all three values below</strong> and click <em>Save configuration</em>.') .
+      '</li>' .
+      '</ol>',
     ];
 
     $form['host'] = [
@@ -340,8 +340,8 @@ final class PostHogSettingsForm extends ConfigFormBase {
     }
     $seenEvents = [];
     foreach ($goals as $i => $goal) {
-      $label = trim($goal['label'] ?? '');
-      $event = trim($goal['event'] ?? '');
+      $label = trim($goal['label'] ?? '', " \n\r\t\v\0");
+      $event = trim($goal['event'] ?? '', " \n\r\t\v\0");
       // Skip completely empty rows.
       if ($label === '' && $event === '') {
         continue;
@@ -388,8 +388,8 @@ final class PostHogSettingsForm extends ConfigFormBase {
     }
     $processedGoals = [];
     foreach ($rawGoals as $goal) {
-      $label = trim($goal['label'] ?? '');
-      $event = trim($goal['event'] ?? '');
+      $label = trim($goal['label'] ?? '', " \n\r\t\v\0");
+      $event = trim($goal['event'] ?? '', " \n\r\t\v\0");
       if ($label === '' || $event === '') {
         continue;
       }
@@ -399,8 +399,8 @@ final class PostHogSettingsForm extends ConfigFormBase {
         'label' => $label,
         'event' => $event,
         'value' => (float) ($goal['value'] ?? 0),
-        'value_property' => trim($goal['value_property'] ?? ''),
-        'currency' => strtoupper(trim($goal['currency'] ?? 'USD')) ?: 'USD',
+        'value_property' => trim($goal['value_property'] ?? '', " \n\r\t\v\0"),
+        'currency' => strtoupper(trim($goal['currency'] ?? 'USD', " \n\r\t\v\0")) ?: 'USD',
       ];
     }
 

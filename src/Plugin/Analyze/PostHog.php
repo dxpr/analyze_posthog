@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\analyze_posthog\Plugin\Analyze;
 
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\analyze\AnalyzePluginBase;
 use Drupal\analyze\HelperInterface;
 use Drupal\analyze_posthog\Form\ReportFilterForm;
@@ -28,6 +29,11 @@ use Symfony\Component\HttpFoundation\RequestStack;
  *   description = @Translation("Displays PostHog pageview analytics for entities with URL paths.")
  * )
  */
+#[\Drupal\analyze\Attribute\Analyze(
+  id: "posthog_analytics",
+  label: new TranslatableMarkup("PostHog Analytics"),
+  description: new TranslatableMarkup("Displays PostHog pageview analytics for entities with URL paths."),
+)]
 final class PostHog extends AnalyzePluginBase {
 
   /**
